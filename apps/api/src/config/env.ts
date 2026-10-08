@@ -26,6 +26,19 @@ const envSchema = z.object({
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_ENABLED: bool.default(true),
 
+  /** Zona horaria de la farmacia: define "hoy" para caducidades y reportes */
+  APP_TIMEZONE: z
+    .string()
+    .default('America/Mexico_City')
+    .refine((tz) => {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: tz });
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'Zona horaria inválida'),
+
   /** Carpeta de archivos subidos (imágenes de productos) */
   UPLOAD_DIR: z.string().default('uploads'),
 

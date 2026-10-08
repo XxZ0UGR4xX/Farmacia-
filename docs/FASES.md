@@ -8,14 +8,76 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 1 | Arquitectura + base de datos + autenticación | ✅ Completa |
 | 2 | Usuarios + roles + permisos (administración desde la UI) | ✅ Completa |
 | 3 | Productos + categorías + laboratorios | ✅ Completa |
-| 4 | Lotes + inventario + movimientos | ⏳ Siguiente |
-| 5 | Proveedores + compras | Pendiente |
+| 4 | Lotes + inventario + movimientos | ✅ Completa |
+| 5 | Proveedores + compras | ⏳ Siguiente |
 | 6 | Punto de venta + ventas + devoluciones | Pendiente |
 | 7 | Caducidades + alertas + notificaciones | Pendiente |
 | 8 | Pacientes + recetas | Pendiente |
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | Pendiente |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
+
+## Fase 4: entregado
+
+**Existencias** (`/inventario/existencias`)
+- Stock disponible por producto **calculado siempre desde sus lotes**: sólo cuenta lo que está
+  activo, sin caducar y con cantidad. Lo caducado y lo que está en cuarentena se muestra aparte.
+- Tarjetas de resumen: productos con existencia, agotados, stock bajo, unidades caducadas y valor
+  del inventario (este último sólo para quien puede ver costos). "Agotados" y "Stock bajo" filtran la lista.
+- Búsqueda sin acentos, filtro por categoría y orden por nombre, menor existencia o caducidad más próxima.
+- Exportación a CSV (abre bien en Excel, con acentos).
+
+**Ficha de inventario por producto**
+- Todos sus lotes con cantidad, caducidad (días restantes y clasificación), costo y estado.
+- Marca **"Se vende primero"** en el lote que saldrá en la próxima venta (FEFO: el que caduca antes;
+  los caducados y en cuarentena no cuentan) y **"Caducado: dar de baja"** en los vencidos con existencia.
+- Últimos 20 movimientos y enlace al historial completo del producto.
+- En celular se muestra como tarjetas con un botón "Ajustar o contar", pensado para hacer el
+  conteo frente al anaquel.
+
+**Entradas y ajustes**
+- **Registrar entrada:** carga inicial o ajuste positivo de un lote. Si el lote ya existe se suma a él;
+  si existe con otra caducidad se rechaza (un mismo lote no puede tener dos caducidades).
+  No se aceptan lotes ya caducados.
+- **Ajustar lote:** salida (daño, caducidad, robo o extravío, uso interno, corrección, error de
+  captura, devolución u otro), entrada o **conteo físico** (se captura lo contado y el sistema
+  calcula la diferencia). Siempre se muestra "antes → después" antes de confirmar.
+- **El motivo es obligatorio** y, si es "Otro", también la explicación. La baja por caducidad,
+  daño o robo queda con su propio tipo de movimiento para los reportes.
+
+**Lotes** (`/inventario/lotes`) y **Movimientos** (`/inventario/movimientos`)
+- Lotes filtrables por caducidad (caducados, críticos < 30 días, próximos 30–90, normales; los
+  límites se toman de la configuración) y por estado.
+- Bitácora de movimientos con quién, cuándo, cuánto (antes, cambio, después), tipo y motivo.
+  Filtros por producto, tipo y rango de fechas; exportación a CSV de hasta 50 000 movimientos.
+- Los movimientos **no se pueden editar ni borrar**: una corrección es un nuevo ajuste.
+
+**Reglas de seguridad e integridad**
+- Todo cambio de stock pasa por un único módulo (`inventory.core.ts`) que **bloquea el lote**
+  (`SELECT … FOR UPDATE`) dentro de una transacción y registra el movimiento en la misma
+  transacción. Dos personas ajustando el mismo lote al mismo tiempo no pueden dejarlo negativo.
+  Esto se verificó: sin el bloqueo, la prueba de concurrencia falla; con él, pasa.
+- La base de datos vuelve a impedir stock negativo y movimientos alterados (`CHECK` y triggers de la Fase 1).
+- La asignación **FEFO** para ventas ya está lista (se usará en el punto de venta de la Fase 6).
+- Cada entrada y ajuste queda en auditoría con cantidad anterior, cambio y nueva.
+- Un lote de otra sucursal se trata como inexistente.
+- El cajero consulta existencias y lotes, pero no ve costos ni valor, no registra entradas ni
+  ajustes, y no ve la bitácora de movimientos.
+- Las exportaciones CSV neutralizan fórmulas (un texto que empieza con `=`, `+`, `-` o `@` no se
+  ejecuta en Excel).
+- "Hoy" se calcula en la zona horaria de la farmacia (`APP_TIMEZONE`, por defecto
+  `America/Mexico_City`), así un lote no "caduca" antes de tiempo por la hora del servidor.
+
+**Datos de demostración:** `npm run db:seed:demo` agrega 20 lotes ficticios con su movimiento de
+carga inicial, entre ellos casos útiles para probar: un lote caducado, lotes críticos y productos
+con stock bajo.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 154 pruebas de API (28 nuevas, incluida la de concurrencia) y 47 de frontend (9 nuevas).
+- Navegador real: resumen y filtro de stock bajo, lote FEFO marcado, salida por daño, conteo físico,
+  entrada de lote nuevo, baja de lote caducado, exportación de movimientos, lotes críticos, cajero
+  sin costos ni movimientos y vista móvil. Sin errores en la consola.
 
 ## Fase 3: entregado
 
@@ -31,7 +93,7 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 - **Margen en vivo** (utilidad por unidad, % sobre costo y sobre venta), aviso si el precio queda
   por debajo del costo y botón "Sugerir precio" con el margen predeterminado de la configuración.
 - SKU automático (`MED-000001`), con secuencia en la base de datos.
-- Existencias por sucursal calculadas desde los lotes disponibles (se alimentan en la Fase 4).
+- Existencias por sucursal calculadas desde los lotes disponibles.
 
 **Categorías y laboratorios** (pestañas en Productos)
 - Alta, edición y baja lógica; nombre único sin distinguir mayúsculas; un nombre dado de baja

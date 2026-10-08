@@ -32,6 +32,7 @@ export const AUDIT_ACTIONS = {
   CATALOG_DELETE: 'Baja de catálogo (categoría/laboratorio)',
 
   INVENTORY_ADJUST: 'Ajuste de inventario',
+  INVENTORY_ENTRY: 'Entrada de inventario (carga inicial / ajuste)',
   SALE_CREATE: 'Venta',
   SALE_CANCEL: 'Cancelación de venta',
   PURCHASE_CREATE: 'Compra',

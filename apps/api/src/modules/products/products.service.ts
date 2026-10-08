@@ -1,5 +1,6 @@
 import { computeMargin, hasPermission, normalizeSearch, type PermissionKey } from '@farmacia/shared';
 import type { Prisma } from '../../generated/prisma/client';
+import { parseDateOnly, todayISO } from '../../lib/dates';
 import { prisma, type DbClient } from '../../lib/prisma';
 import { AppError } from '../../shared/errors';
 import { paginated, toSkipTake, type Paginated } from '../../shared/pagination';
@@ -72,7 +73,8 @@ async function loadBranchStock(db: DbClient, productIds: string[], branchId: str
   const [batches, inventory] = await Promise.all([
     db.productBatch.groupBy({
       by: ['productId'],
-      where: { productId: { in: productIds }, branchId, status: 'ACTIVE' },
+      // Disponible = lotes activos y sin caducar (los caducados no se pueden vender)
+      where: { productId: { in: productIds }, branchId, status: 'ACTIVE', expiresAt: { gte: parseDateOnly(todayISO()) } },
       _sum: { quantity: true },
     }),
     db.inventory.findMany({ where: { productId: { in: productIds }, branchId } }),

@@ -10,6 +10,10 @@ import { ComingSoonPage } from './features/common/ComingSoonPage';
 import { ForbiddenPage } from './features/common/ForbiddenPage';
 import { NotFoundPage } from './features/common/NotFoundPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { BatchesPage } from './features/inventory/BatchesPage';
+import { MovementsPage } from './features/inventory/MovementsPage';
+import { ProductInventoryPage } from './features/inventory/ProductInventoryPage';
+import { StockPage } from './features/inventory/StockPage';
 import { CatalogPage } from './features/products/CatalogPage';
 import { ProductFormPage } from './features/products/ProductFormPage';
 import { ProductsLayout } from './features/products/ProductsLayout';
@@ -30,6 +34,34 @@ function HomeRoute() {
 
 /** Módulos ya implementados, con sus rutas reales. */
 const implementedRoutes: RouteObject[] = [
+  {
+    path: 'inventario/existencias',
+    element: (
+      <RequirePermission permission="inventory.view">
+        <Outlet />
+      </RequirePermission>
+    ),
+    children: [
+      { index: true, element: <StockPage /> },
+      { path: ':productId', element: <ProductInventoryPage /> },
+    ],
+  },
+  {
+    path: 'inventario/lotes',
+    element: (
+      <RequirePermission permission="inventory.view">
+        <BatchesPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'inventario/movimientos',
+    element: (
+      <RequirePermission permission="inventory.movements.view">
+        <MovementsPage />
+      </RequirePermission>
+    ),
+  },
   {
     path: 'inventario/productos',
     element: (

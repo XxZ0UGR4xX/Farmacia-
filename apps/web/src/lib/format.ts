@@ -42,3 +42,26 @@ export function formatMoney(value: number | null | undefined): string {
 export function formatPercent(value: number | null | undefined, digits = 1): string {
   return value == null ? '—' : `${value.toLocaleString('es-MX', { maximumFractionDigits: digits })} %`;
 }
+
+const dateFormat = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+/** Fecha "AAAA-MM-DD" (sin hora) → "28 oct 2026". Se formatea en UTC para no correr el día. */
+export function formatDate(isoDate: string | null | undefined): string {
+  return isoDate ? dateFormat.format(new Date(`${isoDate.slice(0, 10)}T00:00:00Z`)) : '—';
+}
+
+/** Fecha local de hoy en formato "AAAA-MM-DD" (para inputs de fecha). */
+export function todayInputValue(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** "en 15 días", "hoy", "hace 3 días" para caducidades. */
+export function formatDaysLeft(days: number | null | undefined): string {
+  if (days == null) return '—';
+  if (days === 0) return 'Caduca hoy';
+  if (days === 1) return 'Mañana';
+  if (days < 0) return days === -1 ? 'Caducó ayer' : `Caducó hace ${-days} días`;
+  return `${days} días`;
+}

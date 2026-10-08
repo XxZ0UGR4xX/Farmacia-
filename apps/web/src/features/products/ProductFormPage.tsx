@@ -297,6 +297,11 @@ export function ProductFormPage() {
               <span>{productDetails(p)}</span>
               <span className="font-mono text-xs">{p.sku}</span>
               <StockBadge product={p} />
+              {can('inventory.view') && (
+                <ButtonLink to={`/inventario/existencias/${p.id}`} variant="ghost" size="sm">
+                  Ver lotes y movimientos
+                </ButtonLink>
+              )}
             </div>
           ) : (
             <p className="mt-1 text-sm text-slate-500">

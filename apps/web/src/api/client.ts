@@ -135,10 +135,12 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** false para endpoints públicos (login, recuperación) */
   auth?: boolean;
+  /** true: devuelve la Response sin interpretar (descargas) */
+  raw?: boolean;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, signal, auth = true } = options;
+  const { method = 'GET', body, signal, auth = true, raw = false } = options;
 
   // FormData (archivos) se envía tal cual: el navegador fija el Content-Type con su boundary
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
@@ -176,6 +178,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (!res.ok) throw await toApiError(res);
+  if (raw) return res as T;
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
@@ -204,4 +207,19 @@ export async function logoutRequest(): Promise<void> {
   } finally {
     setSession(null);
   }
+}
+
+/** Descarga un archivo de la API (p.ej. CSV) con la sesión actual. */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  const res = await apiRequest<Response>(path, { raw: true });
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const name = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

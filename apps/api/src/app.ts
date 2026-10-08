@@ -13,6 +13,7 @@ import { createRateLimiters } from './middlewares/rate-limit';
 import { authRouter } from './modules/auth/auth.routes';
 import { branchesRouter } from './modules/branches/branches.routes';
 import { catalogRouter } from './modules/catalogs/catalogs.routes';
+import { inventoryRouter } from './modules/inventory/inventory.routes';
 import { UPLOADS_URL_PREFIX, uploadsRoot } from './modules/products/product-images';
 import { productsRouter } from './modules/products/products.routes';
 import { settingsRouter } from './modules/settings/settings.routes';
@@ -85,6 +86,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/categories', catalogRouter('category'));
   app.use('/api/v1/laboratories', catalogRouter('laboratory'));
   app.use('/api/v1/products', productsRouter());
+  app.use('/api/v1/inventory', inventoryRouter());
   app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);

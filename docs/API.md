@@ -89,6 +89,31 @@ o `reports.financial`. Los montos viajan como números con 2 decimales.
 | `PATCH /categories/:id`, `PATCH /laboratories/:id` | `catalogs.manage` | Edición |
 | `DELETE /categories/:id`, `DELETE /laboratories/:id` | `catalogs.manage` | Baja lógica; 422 si algún producto lo usa |
 
+## Inventario (`/inventory`)
+
+Todo es por sucursal (`X-Branch-Id`). El stock disponible es la suma de los lotes activos, sin
+caducar y con cantidad. Las fechas (`expiresAt`, `from`, `to`) son `AAAA-MM-DD` y "hoy" se calcula
+en `APP_TIMEZONE`.
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /inventory/stock` | `inventory.view` | Existencias por producto + `summary`. Filtros: `q`, `categoryId`, `stockStatus` (`OUT`, `LOW`, `OK`, `OVER`), `sort` (`name`, `stock`, `expiry`) |
+| `GET /inventory/stock/export` | `inventory.view` | Mismo filtro, en CSV |
+| `GET /inventory/products/:productId` | `inventory.view` | Todos los lotes del producto y sus últimos 20 movimientos |
+| `GET /inventory/batches` | `inventory.view` | Lotes. Filtros: `q` (producto o número de lote), `productId`, `expiry` (`EXPIRED`, `CRITICAL`, `WARNING`, `OK`), `status` (`AVAILABLE`, `DEPLETED`, `QUARANTINE`, `ALL`) |
+| `GET /inventory/movements` | `inventory.movements.view` | Bitácora. Filtros: `q`, `type` (uno o varios), `productId`, `batchId`, `userId`, `from`, `to` |
+| `GET /inventory/movements/export` | `inventory.movements.view` | Mismo filtro, en CSV (máx. 50 000 filas) |
+| `POST /inventory/entries` | `inventory.adjust` | Entrada a un lote: `productId`, `lotNumber`, `expiresAt`, `quantity`, `unitCost?`, `manufacturedAt?`, `type` (`INITIAL_STOCK` o `ADJUSTMENT_IN` con `reason`), `notes?` |
+| `POST /inventory/adjustments` | `inventory.adjust` | Ajuste de un lote: `batchId`, `direction` (`IN`/`OUT`), `quantity`, `reason`, `notes` (obligatorio si `reason` es `OTHER`) |
+
+Respuestas de error relevantes:
+- `422` si la salida deja el lote en negativo (`details: { available, requested }`), o si al darle
+  entrada el lote ya caducó, está en cuarentena o fue dado de baja.
+- `409` si el número de lote ya existe para el producto con otra caducidad.
+
+Los movimientos no tienen rutas de edición ni de borrado, y la base de datos lo impide con un trigger.
+`unitCost` y `value` sólo se incluyen para quien puede ver costos.
+
 ## Configuración
 
 | Método y ruta | Permiso | Descripción |

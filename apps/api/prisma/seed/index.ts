@@ -15,6 +15,7 @@ import { generateToken, hashPassword } from '../../src/lib/crypto';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { seedMainBranch, seedOwner, seedPermissions, seedRoles, seedSettings } from './core';
 import { seedDemoCatalog } from './demo-catalog';
+import { seedDemoInventory } from './demo-inventory';
 import { DEMO_USERS, seedDemoUsers } from './demo';
 
 config({ path: path.resolve(import.meta.dirname, '../../../../.env'), quiet: true });
@@ -90,6 +91,13 @@ async function seedDemo(branchId: string) {
 
   const catalog = await seedDemoCatalog(prisma, branchId);
   console.log(`   💊 Catálogo: 10 categorías, 10 laboratorios, ${catalog.products} medicamento(s) nuevo(s)`);
+
+  // Los movimientos de la carga inicial quedan a nombre del propietario
+  const owner = await prisma.user.findFirst({ where: { role: { code: 'OWNER' }, deletedAt: null }, orderBy: { createdAt: 'asc' } });
+  if (owner) {
+    const inventory = await seedDemoInventory(prisma, branchId, owner.id);
+    console.log(`   📦 Inventario: ${inventory.batches} lote(s) nuevo(s) con su movimiento de carga inicial`);
+  }
 }
 
 main()
