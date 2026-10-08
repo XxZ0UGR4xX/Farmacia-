@@ -126,6 +126,11 @@ farmacia/
 - El rol `OWNER` pasa todas las verificaciones (regla 11).
 - El catálogo de permisos vive en `packages/shared`. Backend y frontend usan exactamente las mismas claves: el frontend oculta lo que no se puede usar y el backend lo bloquea de verdad.
 - Los usuarios tienen acceso a una o varias sucursales (`user_branches`), listo para el escenario multi-sucursal.
+- **Anti-escalamiento de privilegios** (`canGrantRole` en `packages/shared`): un usuario sólo puede
+  otorgar roles y permisos que él mismo tiene, y sólo administra a usuarios cuyo rol podría otorgar.
+  El servidor lo aplica siempre; la interfaz usa la misma función para ocultar lo que se rechazaría.
+- Los permisos se leen de la sesión en cada petición (con caché de 15 s que se invalida al cambiar
+  un usuario o un rol), por lo que los cambios aplican de inmediato sin volver a iniciar sesión.
 
 ## 6. Seguridad (resumen)
 

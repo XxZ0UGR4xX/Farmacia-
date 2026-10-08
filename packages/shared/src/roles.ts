@@ -110,3 +110,20 @@ export function hasPermission(
     ? granted.includes(required)
     : (granted as ReadonlySet<string>).has(required);
 }
+
+/**
+ * Regla anti-escalamiento: un usuario sólo puede otorgar (o administrar a quien tenga)
+ * un rol cuyos permisos él mismo posee. El propietario puede todo; nadie más otorga OWNER.
+ */
+export function canGrantRole(
+  actorRoleCode: string,
+  actorPermissions: ReadonlySet<string> | readonly string[],
+  role: { code: string; permissions: readonly string[] },
+): boolean {
+  if (actorRoleCode === OWNER_ROLE_CODE) return true;
+  if (role.code === OWNER_ROLE_CODE) return false;
+  const granted: ReadonlySet<string> = Array.isArray(actorPermissions)
+    ? new Set(actorPermissions)
+    : (actorPermissions as ReadonlySet<string>);
+  return role.permissions.every((p) => granted.has(p));
+}

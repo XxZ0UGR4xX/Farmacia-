@@ -2,15 +2,7 @@ import { Bell, Building2, ChevronDown, KeyRound, LogOut, Menu } from 'lucide-rea
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../../auth/useAuth';
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('');
-}
+import { initials } from '../../lib/format';
 
 function UserMenu() {
   const { user, logout } = useAuth();

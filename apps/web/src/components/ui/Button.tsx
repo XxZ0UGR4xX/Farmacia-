@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Link, type LinkProps } from 'react-router';
 import { Spinner } from './Spinner';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -28,6 +29,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
+function buttonClasses(variant: Variant, size: Size, fullWidth?: boolean, className?: string) {
+  return clsx(
+    'inline-flex items-center justify-center rounded-lg font-medium transition-colors disabled:cursor-not-allowed',
+    variants[variant],
+    sizes[size],
+    fullWidth && 'w-full',
+    className,
+  );
+}
+
 export function Button({
   variant = 'primary',
   size = 'md',
@@ -45,17 +56,28 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={clsx(
-        'inline-flex items-center justify-center rounded-lg font-medium transition-colors disabled:cursor-not-allowed',
-        variants[variant],
-        sizes[size],
-        fullWidth && 'w-full',
-        className,
-      )}
+      className={buttonClasses(variant, size, fullWidth, className)}
       {...props}
     >
       {loading ? <Spinner className="size-4" /> : icon}
       {children}
     </button>
+  );
+}
+
+/** Enlace con apariencia de botón (evita anidar <button> dentro de <a>). */
+export function ButtonLink({
+  variant = 'primary',
+  size = 'md',
+  icon,
+  className,
+  children,
+  ...props
+}: LinkProps & { variant?: Variant; size?: Size; icon?: ReactNode }) {
+  return (
+    <Link className={buttonClasses(variant, size, false, className)} {...props}>
+      {icon}
+      {children}
+    </Link>
   );
 }

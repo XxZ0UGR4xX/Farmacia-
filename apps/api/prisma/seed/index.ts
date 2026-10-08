@@ -1,6 +1,7 @@
 /**
  * Seeder principal.
- *   npm run db:seed
+ *   npm run db:seed          catálogo base + propietario
+ *   npm run db:seed:demo     además, datos ficticios de demostración (nunca en producción)
  *
  * Credenciales del propietario: SEED_OWNER_EMAIL / SEED_OWNER_PASSWORD (variables
  * de entorno). Si no se define la contraseña se genera una aleatoria y se muestra
@@ -13,6 +14,7 @@ import path from 'node:path';
 import { generateToken, hashPassword } from '../../src/lib/crypto';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { seedMainBranch, seedOwner, seedPermissions, seedRoles, seedSettings } from './core';
+import { DEMO_USERS, seedDemoUsers } from './demo';
 
 config({ path: path.resolve(import.meta.dirname, '../../../../.env'), quiet: true });
 
@@ -57,7 +59,33 @@ async function main() {
   } else {
     console.log(`👤 El usuario propietario ${email} ya existía (sin cambios).`);
   }
+  if (process.argv.includes('--demo') || process.env.SEED_DEMO === 'true') {
+    await seedDemo(branch.id);
+  }
   console.log('✅ Seed completado');
+}
+
+async function seedDemo(branchId: string) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Los datos de demostración no se pueden cargar en producción');
+  }
+  console.log('🧪 Datos de demostración...');
+  let password = process.env.SEED_DEMO_PASSWORD;
+  const generated = !password;
+  if (!password) password = `${generateToken(9)}7d`;
+  const policy = passwordPolicyErrors(password);
+  if (policy.length) throw new Error(`SEED_DEMO_PASSWORD no cumple la política: ${policy.join(', ')}`);
+
+  const created = await seedDemoUsers(prisma, await hashPassword(password), branchId);
+  if (created.length === 0) {
+    console.log('   Los usuarios de demostración ya existían (sin cambios).');
+    return;
+  }
+  for (const email of created) {
+    const demo = DEMO_USERS.find((d) => d.email === email)!;
+    console.log(`   👤 ${email.padEnd(30)} ${demo.role}`);
+  }
+  if (generated) console.log(`   🔑 Contraseña de los usuarios demo (no se volverá a mostrar): ${password}`);
 }
 
 main()

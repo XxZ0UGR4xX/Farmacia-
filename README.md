@@ -6,7 +6,8 @@ compras, proveedores, punto de venta, pacientes, recetas, reportes y auditoría 
 Está pensado para el doctor propietario, que necesita saber de un vistazo cómo está su farmacia.
 La arquitectura admite desde el inicio más empleados, roles y **sucursales** sin reconstruir el sistema.
 
-> **Estado:** Fase 1 de 11 completa (arquitectura, base de datos y autenticación).
+> **Estado:** Fases 1 y 2 de 11 completas (arquitectura, base de datos, autenticación,
+> usuarios, roles y permisos).
 > Ver [docs/FASES.md](docs/FASES.md).
 
 ## Tecnología
@@ -34,6 +35,7 @@ Documentación técnica:
 - [Arquitectura y seguridad](docs/ARQUITECTURA.md)
 - [Base de datos y modelo entidad-relación](docs/BASE_DE_DATOS.md)
 - [Plan por fases](docs/FASES.md)
+- [Referencia de la API](docs/API.md)
 
 ## Instalación para desarrollo
 
@@ -62,6 +64,7 @@ cp .env.example .env
 # 4. Migraciones y datos iniciales
 npm run db:migrate
 npm run db:seed
+npm run db:seed:demo   # opcional: usuarios ficticios de demostración (SEED_DEMO_PASSWORD)
 
 # 5. Levantar API (http://localhost:4000) y frontend (http://localhost:5173)
 npm run dev:api
@@ -102,6 +105,7 @@ usa `COOKIE_SECURE=false`.
 | `npm run db:migrate` | Crear y aplicar migraciones (desarrollo) |
 | `npm run db:deploy` | Aplicar migraciones pendientes (producción) |
 | `npm run db:seed` | Roles, permisos, sucursal, configuración y propietario |
+| `npm run db:seed:demo` | Lo anterior + usuarios ficticios de demostración (nunca en producción) |
 | `./scripts/backup.sh [--docker]` | Respaldo de la base con rotación |
 
 ## Respaldos

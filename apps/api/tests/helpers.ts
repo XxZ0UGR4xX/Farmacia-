@@ -1,5 +1,6 @@
+import type { Express } from 'express';
 import { randomUUID } from 'node:crypto';
-import type { Response } from 'supertest';
+import request, { type Response } from 'supertest';
 import { MAIN_BRANCH_CODE } from '../prisma/seed/core';
 import type { UserStatus } from '../src/generated/prisma/client';
 import { hashPassword } from '../src/lib/crypto';
@@ -61,4 +62,25 @@ export function sessionCookies(res: Response): SessionCookies {
 
 export function cookieHeader(c: SessionCookies): string {
   return `rt=${c.rt}; csrf_token=${c.csrf}`;
+}
+
+/** Inicia sesión con un usuario de prueba y devuelve su access token. */
+export async function loginAs(app: Express, user: TestUser): Promise<string> {
+  const res = await request(app).post('/api/v1/auth/login').send({ email: user.email, password: user.password });
+  if (res.status !== 200) throw new Error(`Login falló (${res.status}): ${JSON.stringify(res.body)}`);
+  return res.body.accessToken as string;
+}
+
+/** Usuario + token listos para llamar a la API con un rol dado. */
+export async function actorWithRole(app: Express, roleCode: string): Promise<TestUser & { token: string }> {
+  const user = await createTestUser({ roleCode });
+  return { ...user, token: await loginAs(app, user) };
+}
+
+export async function mainBranchId(): Promise<string> {
+  return (await prisma.branch.findUniqueOrThrow({ where: { code: MAIN_BRANCH_CODE } })).id;
+}
+
+export async function roleId(code: string): Promise<string> {
+  return (await prisma.role.findUniqueOrThrow({ where: { code } })).id;
 }

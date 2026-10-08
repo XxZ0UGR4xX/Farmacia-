@@ -11,6 +11,9 @@ import { prisma } from './lib/prisma';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler';
 import { createRateLimiters } from './middlewares/rate-limit';
 import { authRouter } from './modules/auth/auth.routes';
+import { branchesRouter } from './modules/branches/branches.routes';
+import { permissionsRouter, rolesRouter } from './modules/roles/roles.routes';
+import { usersRouter } from './modules/users/users.routes';
 
 // Mensajes de validación en español
 z.config(z.locales.es());
@@ -65,6 +68,10 @@ export function createApp(options: AppOptions = {}): Express {
 
   app.use('/api', limiters.api);
   app.use('/api/v1/auth', authRouter(limiters));
+  app.use('/api/v1/users', usersRouter());
+  app.use('/api/v1/roles', rolesRouter());
+  app.use('/api/v1/permissions', permissionsRouter());
+  app.use('/api/v1/branches', branchesRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

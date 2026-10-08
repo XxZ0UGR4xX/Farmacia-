@@ -320,16 +320,21 @@ async function revokeSession(sessionId: string, reason: string, db: DbClient = p
   invalidateSession(sessionId);
 }
 
-async function revokeAllUserSessions(
+/**
+ * Revoca todas las sesiones de un usuario (opcionalmente excepto una).
+ * Quien llama debe invalidar la caché (`invalidateUser`) después de confirmar la transacción.
+ */
+export async function revokeAllUserSessions(
   db: DbClient,
   userId: string,
   reason: string,
   exceptSessionId?: string,
-): Promise<void> {
-  await db.userSession.updateMany({
+): Promise<number> {
+  const { count } = await db.userSession.updateMany({
     where: { userId, revokedAt: null, ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}) },
     data: { revokedAt: new Date(), revokeReason: reason },
   });
+  return count;
 }
 
 // -----------------------------------------------------------------------------
