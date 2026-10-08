@@ -42,7 +42,7 @@ Documentación técnica:
 ### Requisitos
 
 - Node.js 22 o superior
-- PostgreSQL 16 o superior
+- PostgreSQL 16 o superior (instalado, o en Docker como se indica abajo)
 
 ### Pasos
 
@@ -50,21 +50,28 @@ Documentación técnica:
 # 1. Dependencias
 npm install
 
-# 2. Base de datos (ejemplo con psql; ajusta usuario y contraseña)
+# 2. Base de datos. Con PostgreSQL instalado (ajusta usuario y contraseña):
 psql -U postgres -c "CREATE ROLE farmacia WITH LOGIN PASSWORD 'tu_password' CREATEDB;"
 psql -U postgres -c "CREATE DATABASE farmacia OWNER farmacia;"
 psql -U postgres -c "CREATE DATABASE farmacia_test OWNER farmacia;"   # para pruebas
+#    O bien, con Docker:
+docker run -d --name farmacia-db -p 5432:5432 -e POSTGRES_USER=farmacia \
+  -e POSTGRES_PASSWORD=tu_password -e POSTGRES_DB=farmacia \
+  -v farmacia_pg:/var/lib/postgresql/data postgres:16-alpine
+docker exec farmacia-db createdb -U farmacia farmacia_test           # para pruebas
 
 # 3. Variables de entorno
 cp .env.example .env
 #   - DATABASE_URL / TEST_DATABASE_URL con tu contraseña
 #   - JWT_ACCESS_SECRET:  openssl rand -hex 32
+#     (sin openssl: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 #   - SEED_OWNER_EMAIL / SEED_OWNER_PASSWORD: cuenta del propietario
+#   - SEED_DEMO_PASSWORD: contraseña de los usuarios de demostración (opcional)
 
 # 4. Migraciones y datos iniciales
-npm run db:migrate
+npm run db:deploy
 npm run db:seed
-npm run db:seed:demo   # opcional: usuarios y 30 medicamentos ficticios de demostración
+npm run db:seed:demo   # opcional: usuarios, catálogo y lotes ficticios de demostración
 
 # 5. Levantar API (http://localhost:4000) y frontend (http://localhost:5173)
 npm run dev:api
@@ -102,10 +109,10 @@ usa `COOKIE_SECURE=false`.
 | `npm run typecheck` | Verificación de tipos de todos los paquetes |
 | `npm test` | Pruebas de API (requiere `farmacia_test`) y frontend |
 | `npm run build` | Build de producción |
-| `npm run db:migrate` | Crear y aplicar migraciones (desarrollo) |
+| `npm run db:migrate` | Crear una migración nueva tras cambiar el esquema (desarrollo) |
 | `npm run db:deploy` | Aplicar migraciones pendientes (producción) |
 | `npm run db:seed` | Roles, permisos, sucursal, configuración y propietario |
-| `npm run db:seed:demo` | Lo anterior + usuarios y catálogo ficticios de demostración (nunca en producción) |
+| `npm run db:seed:demo` | Lo anterior + usuarios, catálogo y lotes ficticios de demostración (nunca en producción) |
 | `./scripts/backup.sh [--docker]` | Respaldo de la base con rotación |
 
 ## Respaldos
