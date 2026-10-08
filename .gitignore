@@ -10,3 +10,4 @@ backups/
 .DS_Store
 .vite/
 *.tsbuildinfo
+apps/api/uploads/

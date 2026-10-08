@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import { Eye, EyeOff } from 'lucide-react';
-import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -36,7 +36,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
           aria-describedby={describedBy}
           className={clsx(
             'block h-11 w-full rounded-lg border bg-white text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400',
-            'focus:outline-none focus:ring-4',
+            'focus:outline-none focus:ring-4 disabled:bg-slate-50 disabled:text-slate-500',
             icon ? 'pl-10' : 'pl-3',
             trailing ? 'pr-11' : 'pr-3',
             error
@@ -102,3 +102,39 @@ export const Checkbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInp
     );
   },
 );
+
+export const TextAreaField = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string; hint?: string }
+>(function TextAreaField({ label, error, hint, className, id, rows = 3, ...props }, ref) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
+  return (
+    <div className={className}>
+      <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      <textarea
+        ref={ref}
+        id={inputId}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        className={clsx(
+          'block w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400',
+          'focus:outline-none focus:ring-4 disabled:bg-slate-50 disabled:text-slate-500',
+          error
+            ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+            : 'border-slate-300 focus:border-brand-500 focus:ring-brand-100',
+        )}
+        {...props}
+      />
+      {error ? (
+        <p className="mt-1.5 text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      ) : hint ? (
+        <p className="mt-1.5 text-xs text-slate-500">{hint}</p>
+      ) : null}
+    </div>
+  );
+});

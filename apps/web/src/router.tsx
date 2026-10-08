@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet, type RouteObject } from 'react-router';
 import { PublicOnly, RequireAuth, RequirePermission } from './auth/guards';
 import { useAuth } from './auth/useAuth';
 import { AppLayout } from './components/layout/AppLayout';
@@ -10,6 +10,10 @@ import { ComingSoonPage } from './features/common/ComingSoonPage';
 import { ForbiddenPage } from './features/common/ForbiddenPage';
 import { NotFoundPage } from './features/common/NotFoundPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { CatalogPage } from './features/products/CatalogPage';
+import { ProductFormPage } from './features/products/ProductFormPage';
+import { ProductsLayout } from './features/products/ProductsLayout';
+import { ProductsListPage } from './features/products/ProductsListPage';
 import { ProfilePage } from './features/profile/ProfilePage';
 import { RoleEditorPage } from './features/users/RoleEditorPage';
 import { RolesListPage } from './features/users/RolesListPage';
@@ -26,6 +30,33 @@ function HomeRoute() {
 
 /** Módulos ya implementados, con sus rutas reales. */
 const implementedRoutes: RouteObject[] = [
+  {
+    path: 'inventario/productos',
+    element: (
+      <RequirePermission permission="products.view">
+        <Outlet />
+      </RequirePermission>
+    ),
+    children: [
+      {
+        element: <ProductsLayout />,
+        children: [
+          { index: true, element: <ProductsListPage /> },
+          { path: 'categorias', element: <CatalogPage kind="categories" /> },
+          { path: 'laboratorios', element: <CatalogPage kind="laboratories" /> },
+        ],
+      },
+      {
+        path: 'nuevo',
+        element: (
+          <RequirePermission permission="products.create">
+            <ProductFormPage />
+          </RequirePermission>
+        ),
+      },
+      { path: ':id', element: <ProductFormPage /> },
+    ],
+  },
   {
     path: 'usuarios',
     element: (

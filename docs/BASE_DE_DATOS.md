@@ -91,7 +91,8 @@ Además de las validaciones de la API, PostgreSQL rechaza estados inválidos
 | Lotes independientes | `UNIQUE (product_id, branch_id, lot_number)` |
 | Cantidades y montos válidos | `CHECK` de positividad en partidas, pagos y precios; `tax_rate` entre 0 y 1 |
 | Correo único sin ambigüedad | `UNIQUE (email)` + `CHECK (email = lower(email))` |
-| Búsqueda rápida de productos | Índice GIN trigram sobre nombre comercial, genérico y principio activo |
+| Búsqueda rápida de productos | Columna `search_text` (nombres, principio activo, código y SKU sin acentos) con índice GIN trigram |
+| SKU automático | Secuencia `product_sku_seq` → `MED-000001` |
 
 ## Decisiones de diseño
 

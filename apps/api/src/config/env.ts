@@ -26,6 +26,9 @@ const envSchema = z.object({
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_ENABLED: bool.default(true),
 
+  /** Carpeta de archivos subidos (imágenes de productos) */
+  UPLOAD_DIR: z.string().default('uploads'),
+
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),

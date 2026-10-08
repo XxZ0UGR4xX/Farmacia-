@@ -61,6 +61,40 @@ al menos un propietario activo.
 
 Regla: nadie otorga permisos que no tiene (respuesta 403 con `details.missing`), ni modifica su propio rol.
 
+## Productos
+
+La sucursal de trabajo se toma del header `X-Branch-Id` (validado contra las sucursales del
+usuario) o de su sucursal predeterminada. Existencias y parámetros de inventario son por sucursal.
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /products` | `products.view` | Lista. Filtros: `q` (sin acentos, varias palabras, código o SKU), `categoryId`, `laboratoryId`, `status`, `requiresPrescription`, `sort` (`name`, `price_asc`, `price_desc`, `recent`) |
+| `GET /products/:id` | `products.view` | Ficha con `stock`, `stockStatus` (`OUT`/`LOW`/`OK`) e `inventory` de la sucursal |
+| `GET /products/barcode/:code` | `products.view` | Búsqueda exacta por código de barras (lector) |
+| `POST /products` | `products.create` | Alta. `sku` opcional (se genera `MED-000001`); `minStock` toma el valor de la configuración si se omite |
+| `PATCH /products/:id` | `products.edit` | Edición parcial. Cambiar `salePrice`, `purchasePrice` o `taxRate` requiere además `products.change_price` |
+| `DELETE /products/:id` | `products.delete` | Baja lógica; 422 si tiene existencias |
+| `POST /products/:id/image` | `products.edit` | `multipart/form-data`, campo `image` (JPG/PNG/WebP, máx. 5 MB) → `{ imageUrl }` |
+| `DELETE /products/:id/image` | `products.edit` | Quita la imagen |
+
+`purchasePrice` y `margin` sólo se incluyen para quien tiene `products.create`, `products.edit`
+o `reports.financial`. Los montos viajan como números con 2 decimales.
+
+## Categorías y laboratorios
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /categories`, `GET /laboratories` | `products.view` | Lista con `productCount` |
+| `POST /categories`, `POST /laboratories` | `catalogs.manage` | Alta (reactiva un nombre dado de baja) |
+| `PATCH /categories/:id`, `PATCH /laboratories/:id` | `catalogs.manage` | Edición |
+| `DELETE /categories/:id`, `DELETE /laboratories/:id` | `catalogs.manage` | Baja lógica; 422 si algún producto lo usa |
+
+## Configuración
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /settings/defaults` | `products.view` | IVA (`pricesIncludeTax`), margen y stock mínimo predeterminados, moneda |
+
 ## Sucursales
 
 | Método y ruta | Permiso | Descripción |
@@ -72,3 +106,4 @@ Regla: nadie otorga permisos que no tiene (respuesta 403 con `details.missing`),
 | Método y ruta | Acceso | Descripción |
 |---|---|---|
 | `GET /api/health` | Público | Estado de la API y de la base de datos |
+| `GET /api/uploads/products/:archivo` | Público | Imágenes de productos (nombres impredecibles, sin listado) |

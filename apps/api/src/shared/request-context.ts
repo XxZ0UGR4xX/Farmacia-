@@ -35,3 +35,19 @@ export function requireAuth(req: Request): AuthContext {
   if (!req.auth) throw AppError.unauthenticated();
   return req.auth;
 }
+
+/**
+ * Sucursal en la que opera la petición: header `X-Branch-Id` (validado contra las
+ * sucursales del usuario) o, si no se envía, su sucursal predeterminada.
+ */
+export function currentBranchId(req: Request): string {
+  const auth = requireAuth(req);
+  const requested = req.get('x-branch-id');
+  if (requested) {
+    if (!auth.branchIds.includes(requested)) throw AppError.forbidden('No tienes acceso a esa sucursal');
+    return requested;
+  }
+  const branchId = auth.defaultBranchId ?? auth.branchIds[0];
+  if (!branchId) throw AppError.businessRule('Tu usuario no tiene una sucursal asignada');
+  return branchId;
+}

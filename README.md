@@ -6,8 +6,8 @@ compras, proveedores, punto de venta, pacientes, recetas, reportes y auditoría 
 Está pensado para el doctor propietario, que necesita saber de un vistazo cómo está su farmacia.
 La arquitectura admite desde el inicio más empleados, roles y **sucursales** sin reconstruir el sistema.
 
-> **Estado:** Fases 1 y 2 de 11 completas (arquitectura, base de datos, autenticación,
-> usuarios, roles y permisos).
+> **Estado:** Fases 1 a 3 de 11 completas (arquitectura, base de datos, autenticación,
+> usuarios, roles, permisos, productos, categorías y laboratorios).
 > Ver [docs/FASES.md](docs/FASES.md).
 
 ## Tecnología
@@ -64,7 +64,7 @@ cp .env.example .env
 # 4. Migraciones y datos iniciales
 npm run db:migrate
 npm run db:seed
-npm run db:seed:demo   # opcional: usuarios ficticios de demostración (SEED_DEMO_PASSWORD)
+npm run db:seed:demo   # opcional: usuarios y 30 medicamentos ficticios de demostración
 
 # 5. Levantar API (http://localhost:4000) y frontend (http://localhost:5173)
 npm run dev:api
@@ -105,7 +105,7 @@ usa `COOKIE_SECURE=false`.
 | `npm run db:migrate` | Crear y aplicar migraciones (desarrollo) |
 | `npm run db:deploy` | Aplicar migraciones pendientes (producción) |
 | `npm run db:seed` | Roles, permisos, sucursal, configuración y propietario |
-| `npm run db:seed:demo` | Lo anterior + usuarios ficticios de demostración (nunca en producción) |
+| `npm run db:seed:demo` | Lo anterior + usuarios y catálogo ficticios de demostración (nunca en producción) |
 | `./scripts/backup.sh [--docker]` | Respaldo de la base con rotación |
 
 ## Respaldos
@@ -115,7 +115,8 @@ usa `COOKIE_SECURE=false`.
 ./scripts/backup.sh --docker   # base dentro de docker compose
 ```
 
-Genera `backups/farmacia_AAAAMMDD_HHMMSS.dump`, verifica que se pueda leer y borra los respaldos
+Genera `backups/farmacia_AAAAMMDD_HHMMSS.dump` (base de datos) y `..._imagenes.tar.gz` (imágenes de
+productos), verifica que el respaldo de la base se pueda leer y borra los respaldos
 con más de `BACKUP_RETENTION_DAYS` días. Para programarlo a diario, mira el encabezado del script.
 Guarda una copia **fuera del servidor**, porque los respaldos contienen datos sensibles.
 

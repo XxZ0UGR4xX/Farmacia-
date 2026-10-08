@@ -7,8 +7,8 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 |---|---|---|
 | 1 | Arquitectura + base de datos + autenticación | ✅ Completa |
 | 2 | Usuarios + roles + permisos (administración desde la UI) | ✅ Completa |
-| 3 | Productos + categorías + laboratorios | ⏳ Siguiente |
-| 4 | Lotes + inventario + movimientos | Pendiente |
+| 3 | Productos + categorías + laboratorios | ✅ Completa |
+| 4 | Lotes + inventario + movimientos | ⏳ Siguiente |
 | 5 | Proveedores + compras | Pendiente |
 | 6 | Punto de venta + ventas + devoluciones | Pendiente |
 | 7 | Caducidades + alertas + notificaciones | Pendiente |
@@ -16,6 +16,49 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | Pendiente |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
+
+## Fase 3: entregado
+
+**Productos** (`/inventario/productos`)
+- Lista con búsqueda **sin acentos y por varias palabras** ("acido" encuentra "Ácido fólico";
+  "para 500" encuentra "Paracetamol 500 mg"), por código de barras y por SKU.
+- **Lector de código de barras USB:** al escanear en el buscador (código + Enter) se abre el producto.
+  En el formulario, el Enter del lector no envía el formulario por accidente.
+- Filtros por categoría, laboratorio, estado y receta; orden por nombre, precio o fecha.
+- Ficha completa: identificación, clasificación y presentación, precio con IVA por producto,
+  parámetros de inventario por sucursal (mínimo, máximo, ubicación), control (receta, retiene
+  receta, estado), información de referencia e imagen.
+- **Margen en vivo** (utilidad por unidad, % sobre costo y sobre venta), aviso si el precio queda
+  por debajo del costo y botón "Sugerir precio" con el margen predeterminado de la configuración.
+- SKU automático (`MED-000001`), con secuencia en la base de datos.
+- Existencias por sucursal calculadas desde los lotes disponibles (se alimentan en la Fase 4).
+
+**Categorías y laboratorios** (pestañas en Productos)
+- Alta, edición y baja lógica; nombre único sin distinguir mayúsculas; un nombre dado de baja
+  se reactiva en lugar de duplicarse; no se elimina si algún producto lo usa.
+
+**Reglas de seguridad**
+- El **costo y el margen** sólo los ve quien puede crear/editar productos o ver reportes
+  financieros. Un cajero ve el precio de venta, no lo que costó.
+- **Cambiar precios** (venta, costo o IVA) requiere `products.change_price` y se audita aparte
+  (`PRODUCT_PRICE_CHANGE` con valor anterior y nuevo). El farmacéutico edita productos, pero no precios.
+- Eliminar es baja lógica (el historial se conserva), libera el código de barras y **se bloquea si
+  hay existencias**.
+- **Imágenes:** sólo JPG/PNG/WebP de hasta 5 MB. Se re-codifican a WebP de máx. 800 px, sin
+  metadatos (EXIF/GPS). Un archivo que no es imagen se rechaza aunque diga serlo. Los nombres
+  de archivo son impredecibles. Se incluyen en `scripts/backup.sh`.
+- La sucursal de trabajo se valida contra las sucursales del usuario (`X-Branch-Id`), lista para
+  multi-sucursal.
+
+**Datos de demostración:** `npm run db:seed:demo` agrega 10 categorías, 10 laboratorios ficticios
+y 30 medicamentos con nombre genérico (sin marcas comerciales reales). Los códigos de barras usan
+EAN-13 del rango interno 200, así que no coinciden con productos reales.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 126 pruebas de API (39 nuevas) y 38 de frontend (8 nuevas).
+- Navegador real: búsqueda sin acentos, escaneo que abre la ficha, cambio de precio, alta con
+  precio sugerido e imagen, categorías, cajero en modo consulta sin costos y vista móvil.
 
 ## Fase 2: entregado
 

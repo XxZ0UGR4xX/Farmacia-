@@ -32,3 +32,13 @@ export function initials(name: string): string {
     .map((p) => p[0]?.toUpperCase())
     .join('');
 }
+
+const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+export function formatMoney(value: number | null | undefined): string {
+  return value == null || Number.isNaN(value) ? '—' : moneyFormat.format(value);
+}
+
+export function formatPercent(value: number | null | undefined, digits = 1): string {
+  return value == null ? '—' : `${value.toLocaleString('es-MX', { maximumFractionDigits: digits })} %`;
+}

@@ -47,6 +47,9 @@ services:
       MAIL_FROM: ${MAIL_FROM:-Farmacia <no-reply@farmacia.local>}
       SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL:-}
       SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD:-}
+      UPLOAD_DIR: /app/apps/api/uploads
+    volumes:
+      - uploads:/app/apps/api/uploads # Imágenes de productos (incluir en respaldos)
 
   web:
     build:
@@ -60,3 +63,4 @@ services:
 
 volumes:
   db_data:
+  uploads:

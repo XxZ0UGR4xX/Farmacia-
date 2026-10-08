@@ -26,6 +26,10 @@ export const AUDIT_ACTIONS = {
   PRODUCT_UPDATE: 'Edición de producto',
   PRODUCT_DELETE: 'Eliminación de producto',
   PRODUCT_PRICE_CHANGE: 'Cambio de precio',
+  PRODUCT_IMAGE_CHANGE: 'Cambio de imagen de producto',
+  CATALOG_CREATE: 'Alta en catálogo (categoría/laboratorio)',
+  CATALOG_UPDATE: 'Edición de catálogo (categoría/laboratorio)',
+  CATALOG_DELETE: 'Baja de catálogo (categoría/laboratorio)',
 
   INVENTORY_ADJUST: 'Ajuste de inventario',
   SALE_CREATE: 'Venta',

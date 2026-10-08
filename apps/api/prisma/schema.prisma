@@ -381,6 +381,8 @@ model Product {
   description          String?       @db.Text
   indications          String?       @db.Text
   observations         String?       @db.Text
+  /// Nombres, principio activo, código de barras y SKU normalizados (sin acentos, minúsculas)
+  searchText           String        @default("") @map("search_text") @db.Text
   createdById          String?       @map("created_by_id") @db.Uuid
   updatedById          String?       @map("updated_by_id") @db.Uuid
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -406,6 +408,7 @@ model Product {
   @@index([categoryId])
   @@index([laboratoryId])
   @@index([status, deletedAt])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_search_text_trgm_idx")
   @@map("products")
 }
 

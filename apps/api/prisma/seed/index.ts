@@ -14,6 +14,7 @@ import path from 'node:path';
 import { generateToken, hashPassword } from '../../src/lib/crypto';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { seedMainBranch, seedOwner, seedPermissions, seedRoles, seedSettings } from './core';
+import { seedDemoCatalog } from './demo-catalog';
 import { DEMO_USERS, seedDemoUsers } from './demo';
 
 config({ path: path.resolve(import.meta.dirname, '../../../../.env'), quiet: true });
@@ -79,13 +80,16 @@ async function seedDemo(branchId: string) {
   const created = await seedDemoUsers(prisma, await hashPassword(password), branchId);
   if (created.length === 0) {
     console.log('   Los usuarios de demostración ya existían (sin cambios).');
-    return;
+  } else {
+    for (const email of created) {
+      const demo = DEMO_USERS.find((d) => d.email === email)!;
+      console.log(`   👤 ${email.padEnd(30)} ${demo.role}`);
+    }
+    if (generated) console.log(`   🔑 Contraseña de los usuarios demo (no se volverá a mostrar): ${password}`);
   }
-  for (const email of created) {
-    const demo = DEMO_USERS.find((d) => d.email === email)!;
-    console.log(`   👤 ${email.padEnd(30)} ${demo.role}`);
-  }
-  if (generated) console.log(`   🔑 Contraseña de los usuarios demo (no se volverá a mostrar): ${password}`);
+
+  const catalog = await seedDemoCatalog(prisma, branchId);
+  console.log(`   💊 Catálogo: 10 categorías, 10 laboratorios, ${catalog.products} medicamento(s) nuevo(s)`);
 }
 
 main()

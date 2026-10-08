@@ -11,6 +11,7 @@
 #
 # Restaurar (¡reemplaza los datos actuales!):
 #   pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" backups/farmacia_AAAAMMDD_HHMMSS.dump
+#   tar -C apps/api -xzf backups/farmacia_AAAAMMDD_HHMMSS_imagenes.tar.gz      # imágenes
 # =============================================================================
 set -euo pipefail
 
@@ -44,6 +45,24 @@ chmod 600 "$FILE"
 pg_restore --list "$FILE" >/dev/null
 echo "[$(date -Iseconds)] Respaldo creado: $FILE ($(du -h "$FILE" | cut -f1))"
 
+# Imágenes de productos (si existen)
+IMAGES="$BACKUP_DIR/farmacia_${TIMESTAMP}_imagenes.tar.gz"
+if [[ "${1:-}" == "--docker" ]]; then
+  docker compose -f "$ROOT_DIR/docker-compose.yml" exec -T api tar -C /app/apps/api -czf - uploads >"$IMAGES"
+else
+  UPLOADS="${UPLOAD_DIR:-uploads}"
+  [[ "$UPLOADS" = /* ]] || UPLOADS="$ROOT_DIR/apps/api/$UPLOADS"
+  if [[ -d "$UPLOADS" ]]; then
+    tar -C "$(dirname "$UPLOADS")" -czf "$IMAGES" "$(basename "$UPLOADS")"
+  else
+    IMAGES=""
+  fi
+fi
+if [[ -n "$IMAGES" ]]; then
+  chmod 600 "$IMAGES"
+  echo "[$(date -Iseconds)] Imágenes respaldadas: $IMAGES ($(du -h "$IMAGES" | cut -f1))"
+fi
+
 # Rotación: eliminar respaldos más antiguos que RETENTION_DAYS
-find "$BACKUP_DIR" -name 'farmacia_*.dump' -type f -mtime "+$RETENTION_DAYS" -print -delete |
+find "$BACKUP_DIR" \( -name 'farmacia_*.dump' -o -name 'farmacia_*_imagenes.tar.gz' \) -type f -mtime "+$RETENTION_DAYS" -print -delete |
   sed 's/^/Respaldo antiguo eliminado: /'

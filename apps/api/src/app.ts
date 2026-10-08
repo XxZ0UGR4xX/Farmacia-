@@ -12,6 +12,10 @@ import { errorHandler, notFoundHandler } from './middlewares/error-handler';
 import { createRateLimiters } from './middlewares/rate-limit';
 import { authRouter } from './modules/auth/auth.routes';
 import { branchesRouter } from './modules/branches/branches.routes';
+import { catalogRouter } from './modules/catalogs/catalogs.routes';
+import { UPLOADS_URL_PREFIX, uploadsRoot } from './modules/products/product-images';
+import { productsRouter } from './modules/products/products.routes';
+import { settingsRouter } from './modules/settings/settings.routes';
 import { permissionsRouter, rolesRouter } from './modules/roles/roles.routes';
 import { usersRouter } from './modules/users/users.routes';
 
@@ -54,7 +58,7 @@ export function createApp(options: AppOptions = {}): Express {
     cors({
       origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Branch-Id'],
       exposedHeaders: ['X-Request-Id'],
     }),
   );
@@ -66,12 +70,22 @@ export function createApp(options: AppOptions = {}): Express {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
+  // Imágenes de productos (no sensibles). Nombres impredecibles; sin listado de carpetas.
+  app.use(
+    UPLOADS_URL_PREFIX,
+    express.static(uploadsRoot(), { index: false, dotfiles: 'deny', maxAge: '30d', immutable: true }),
+  );
+
   app.use('/api', limiters.api);
   app.use('/api/v1/auth', authRouter(limiters));
   app.use('/api/v1/users', usersRouter());
   app.use('/api/v1/roles', rolesRouter());
   app.use('/api/v1/permissions', permissionsRouter());
   app.use('/api/v1/branches', branchesRouter());
+  app.use('/api/v1/categories', catalogRouter('category'));
+  app.use('/api/v1/laboratories', catalogRouter('laboratory'));
+  app.use('/api/v1/products', productsRouter());
+  app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -31,6 +31,9 @@ COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 WORKDIR /app/apps/api
 
+# Carpeta de imágenes de productos (montada como volumen en docker-compose)
+RUN mkdir -p uploads && chown node:node uploads
+
 # Nunca correr como root
 USER node
 EXPOSE 4000

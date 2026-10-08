@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
@@ -17,6 +18,8 @@ const testEnv = {
   JWT_ACCESS_SECRET: randomBytes(32).toString('hex'),
   APP_URL: 'http://localhost:5173',
   RATE_LIMIT_ENABLED: 'false',
+  // Las imágenes subidas en pruebas no ensucian la carpeta del proyecto
+  UPLOAD_DIR: path.join(tmpdir(), 'farmacia-test-uploads'),
   LOG_LEVEL: 'silent',
 };
 
