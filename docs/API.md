@@ -158,6 +158,17 @@ Respuestas relevantes del cobro:
 - `409` si `expectedTotal` no coincide con el total calculado (cambió un precio).
 - Un `clientRequestId` repetido devuelve la venta original con `201` (no cobra dos veces).
 
+## Caducidades y notificaciones
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /inventory/expirations` | `expirations.view` | `summary` (EXPIRED, CRITICAL, WARNING: lotes, unidades, productos y valor si ve costos), `thresholds` y lotes. Filtro: `class` |
+| `GET /inventory/expirations/export` | `expirations.view` | Lo mismo en CSV |
+| `GET /notifications` | `notifications.view` | Alertas activas que el usuario puede ver por sus permisos, con `link` y `read`. Filtros: `type`, `unread=true` |
+| `GET /notifications/summary` | `notifications.view` | `{ unread, total, critical }` para la campana |
+| `POST /notifications/:id/read` | `notifications.view` | Marca una como leída (por usuario) |
+| `POST /notifications/read-all` | `notifications.view` | Marca todas como leídas |
+
 ## Configuración
 
 | Método y ruta | Permiso | Descripción |

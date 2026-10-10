@@ -78,3 +78,5 @@ export const movementsQuerySchema = paginationSchema
   })
   .refine((d) => !d.from || !d.to || d.from <= d.to, { message: 'La fecha inicial debe ser anterior a la final', path: ['from'] });
 export type MovementsQueryDto = z.infer<typeof movementsQuerySchema>;
+
+export const expirationsQuerySchema = z.object({ class: z.enum(['EXPIRED', 'CRITICAL', 'WARNING']).optional() });

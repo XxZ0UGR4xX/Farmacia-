@@ -178,6 +178,8 @@ function useInvalidateInventory() {
   return () => {
     void qc.invalidateQueries({ queryKey: inventoryKeys.all });
     void qc.invalidateQueries({ queryKey: catalogKeys.products });
+    // Las alertas (agotados, caducados, pagos) dependen de estos datos
+    void qc.invalidateQueries({ queryKey: ['notifications'] });
   };
 }
 
@@ -194,5 +196,21 @@ export function useAdjustBatch() {
   return useMutation({
     mutationFn: (input: AdjustmentInput) => api.post<{ movement: Movement }>('/inventory/adjustments', input).then((r) => r.movement),
     onSuccess: invalidate,
+  });
+}
+
+export type ExpiryClass = 'EXPIRED' | 'CRITICAL' | 'WARNING';
+
+export interface ExpirationsResponse {
+  summary: Record<ExpiryClass, { batches: number; products: number; units: number; value?: number }>;
+  thresholds: { criticalDays: number; warningDays: number };
+  data: Batch[];
+}
+
+export function useExpirations(cls: ExpiryClass | undefined) {
+  return useQuery({
+    queryKey: ['inventory', 'expirations', cls ?? 'all'],
+    queryFn: ({ signal }) => api.get<ExpirationsResponse>(`/inventory/expirations?${toQuery({ class: cls })}`, { signal }),
+    placeholderData: keepPreviousData,
   });
 }

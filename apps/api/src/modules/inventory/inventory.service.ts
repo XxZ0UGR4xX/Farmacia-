@@ -570,3 +570,52 @@ export async function adjustBatch(auth: AuthContext, branchId: string, dto: Adju
 
 /** Etiquetas para exportaciones. */
 export const exportLabels = { MOVEMENT_TYPE_LABELS, ADJUSTMENT_REASON_LABELS, PRESENTATION_LABELS };
+
+// -----------------------------------------------------------------------------
+// Caducidades
+// -----------------------------------------------------------------------------
+
+export type ExpiryClass = 'EXPIRED' | 'CRITICAL' | 'WARNING';
+
+/**
+ * Lotes con existencia que ya caducaron o caducan dentro de la ventana de aviso
+ * (configuración `alerts.expiry`). Incluye los que están en cuarentena.
+ */
+export async function getExpirations(auth: AuthContext, branchId: string, cls?: ExpiryClass) {
+  const today = todayISO();
+  const thresholds = await getSetting('alerts.expiry');
+  const costs = canSeeCosts(auth);
+  const ranges: Record<ExpiryClass, Prisma.ProductBatchWhereInput> = {
+    EXPIRED: { expiresAt: { lt: parseDateOnly(today) } },
+    CRITICAL: { expiresAt: { gte: parseDateOnly(today), lt: addDays(today, thresholds.criticalDays) } },
+    WARNING: { expiresAt: { gte: addDays(today, thresholds.criticalDays), lte: addDays(today, thresholds.warningDays) } },
+  };
+  const base: Prisma.ProductBatchWhereInput = { branchId, quantity: { gt: 0 }, status: { in: ['ACTIVE', 'QUARANTINE'] }, product: { deletedAt: null } };
+
+  const [rows, ...groups] = await Promise.all([
+    prisma.productBatch.findMany({
+      where: { ...base, ...(cls ? ranges[cls] : { expiresAt: { lte: addDays(today, thresholds.warningDays) } }) },
+      include: batchInclude,
+      orderBy: [{ expiresAt: 'asc' }, { receivedAt: 'asc' }],
+      take: 500,
+    }),
+    ...(['EXPIRED', 'CRITICAL', 'WARNING'] as const).map((c) =>
+      prisma.productBatch.findMany({ where: { ...base, ...ranges[c] }, select: { productId: true, quantity: true, unitCost: true } }),
+    ),
+  ]);
+  const summary = Object.fromEntries(
+    (['EXPIRED', 'CRITICAL', 'WARNING'] as const).map((c, i) => {
+      const list = groups[i]!;
+      return [
+        c,
+        {
+          batches: list.length,
+          products: new Set(list.map((b) => b.productId)).size,
+          units: list.reduce((s, b) => s + b.quantity, 0),
+          ...(costs ? { value: Math.round(list.reduce((s, b) => s + b.quantity * Number(b.unitCost), 0) * 100) / 100 } : {}),
+        },
+      ];
+    }),
+  ) as Record<ExpiryClass, { batches: number; products: number; units: number; value?: number }>;
+  return { summary, thresholds, data: rows.map((b) => toBatchDto(b, today, thresholds, costs)) };
+}

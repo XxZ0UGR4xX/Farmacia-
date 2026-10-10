@@ -20,7 +20,16 @@ const MODES: { mode: Mode; label: string; icon: typeof Minus; hint: string }[] =
   { mode: 'COUNT', label: 'Conteo físico', icon: ClipboardCheck, hint: 'Captura lo que hay en el anaquel' },
 ];
 
-export function AdjustDialog({ batch, onClose }: { batch: Batch | null; onClose: () => void }) {
+export function AdjustDialog({
+  batch,
+  onClose,
+  preset,
+}: {
+  batch: Batch | null;
+  onClose: () => void;
+  /** Salida prellenada, p. ej. dar de baja un lote caducado completo */
+  preset?: { reason: AdjustmentReason; quantity?: number };
+}) {
   const toast = useToast();
   const adjust = useAdjustBatch();
   const [mode, setMode] = useState<Mode>('OUT');
@@ -33,11 +42,12 @@ export function AdjustDialog({ batch, onClose }: { batch: Batch | null; onClose:
   useEffect(() => {
     if (!batch) return;
     setMode('OUT');
-    setQuantity('');
-    setReason('');
+    setQuantity(preset?.quantity ? String(preset.quantity) : '');
+    setReason(preset?.reason ?? '');
     setNotes('');
     setErrors({});
     setFormError(null);
+    // Sólo al abrir con otro lote: el preset llega junto con él
   }, [batch]);
 
   if (!batch) return null;

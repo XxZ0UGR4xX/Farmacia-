@@ -11,6 +11,7 @@ import { ForbiddenPage } from './features/common/ForbiddenPage';
 import { NotFoundPage } from './features/common/NotFoundPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { BatchesPage } from './features/inventory/BatchesPage';
+import { ExpirationsPage } from './features/inventory/ExpirationsPage';
 import { MovementsPage } from './features/inventory/MovementsPage';
 import { ProductInventoryPage } from './features/inventory/ProductInventoryPage';
 import { StockPage } from './features/inventory/StockPage';
@@ -18,6 +19,7 @@ import { CatalogPage } from './features/products/CatalogPage';
 import { ProductFormPage } from './features/products/ProductFormPage';
 import { ProductsLayout } from './features/products/ProductsLayout';
 import { ProductsListPage } from './features/products/ProductsListPage';
+import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { ProfilePage } from './features/profile/ProfilePage';
 import { PurchaseDetailPage } from './features/purchases/PurchaseDetailPage';
 import { PurchaseFormPage } from './features/purchases/PurchaseFormPage';
@@ -87,6 +89,22 @@ const implementedRoutes: RouteObject[] = [
     element: (
       <RequirePermission permission="inventory.view">
         <BatchesPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'inventario/caducidades',
+    element: (
+      <RequirePermission permission="expirations.view">
+        <ExpirationsPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'notificaciones',
+    element: (
+      <RequirePermission permission="notifications.view">
+        <NotificationsPage />
       </RequirePermission>
     ),
   },

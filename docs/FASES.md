@@ -11,11 +11,49 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 4 | Lotes + inventario + movimientos | ✅ Completa |
 | 5 | Proveedores + compras | ✅ Completa |
 | 6 | Punto de venta + ventas + devoluciones | ✅ Completa |
-| 7 | Caducidades + alertas + notificaciones | ⏳ Siguiente |
-| 8 | Pacientes + recetas | Pendiente |
+| 7 | Caducidades + alertas + notificaciones | ✅ Completa |
+| 8 | Pacientes + recetas | ⏳ Siguiente |
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | Pendiente |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
+
+## Fase 7: entregado
+
+**Caducidades** (`/inventario/caducidades`)
+- Tarjetas de **caducados**, **críticos** (menos de 30 días) y **próximos** (30 a 90 días) con
+  lotes, unidades, productos y valor al costo. Los límites se toman de la configuración `alerts.expiry`.
+- Lista de lotes con existencia ordenada por caducidad; al tocar una tarjeta se filtra.
+- **Dar de baja** un lote caducado directo desde la lista: abre el ajuste ya prellenado con todas
+  sus unidades y el motivo "Producto caducado".
+- Exportación a CSV. Incluye los lotes en cuarentena.
+
+**Alertas automáticas**
+- Se calculan a partir del estado real y se **concilian** con las activas: una condición nueva
+  crea su alerta, una que sigue vigente sólo actualiza su texto (no vuelve a marcarse como no
+  leída) y una que ya no aplica se cierra sola.
+  - Agotado (urgente) y stock bajo, en productos activos con mínimo definido.
+  - Lote caducado con existencia (urgente) y lote en ventana crítica.
+  - Pago a proveedor por vencer (3 días antes) y vencido (urgente).
+  - Pedido sin recibir después de 7 días.
+  - Productos devueltos esperando revisión.
+- La base de datos no permite dos alertas activas de la misma condición en una sucursal, y las
+  revisiones simultáneas se serializan. Revisión periódica cada 10 minutos y, además, en cuanto
+  una venta, compra, ajuste o devolución cambia los datos.
+
+**Campana y centro de notificaciones** (`/notificaciones`)
+- Contador de no leídas (rojo si hay urgentes), panel con las más importantes primero y clic que
+  lleva a la pantalla del problema (ficha del producto, compra o devoluciones).
+- Página con filtros por tipo, "sólo sin leer" y "marcar todo como leído". Lo leído es por usuario.
+- **Cada quien ve sólo lo que le corresponde:** la cajera ve agotados y stock bajo; los pagos a
+  proveedores sólo quien puede pagarlos; las caducidades quien las administra.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 191 pruebas de API (6 nuevas: detección, conciliación, cierre, duplicados con
+  revisiones simultáneas, visibilidad por rol, leídas por usuario y caducidades) y 64 de frontend (4 nuevas).
+- Navegador real: campana con 16 alertas, clic que abre la ficha del lote caducado, centro de
+  notificaciones, baja del lote caducado que cierra su alerta, cajera sólo con alertas de
+  existencias y sin caducidades, aviso de devoluciones al farmacéutico y vista móvil. Sin errores en la consola.
 
 ## Fase 6: entregado
 

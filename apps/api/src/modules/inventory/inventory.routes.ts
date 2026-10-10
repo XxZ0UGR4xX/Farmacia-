@@ -10,6 +10,7 @@ import {
   adjustmentSchema,
   batchesQuerySchema,
   entrySchema,
+  expirationsQuerySchema,
   movementsQuerySchema,
   stockQuerySchema,
 } from './inventory.schemas';
@@ -68,6 +69,26 @@ const controller = {
     );
     sendCsv(res, `movimientos_${todayISO()}.csv`, csv);
   },
+  async expirations(req: Request, res: Response) {
+    const { class: cls } = expirationsQuerySchema.parse(req.query);
+    res.json(await service.getExpirations(requireAuth(req), currentBranchId(req), cls));
+  },
+  async expirationsExport(req: Request, res: Response) {
+    const { class: cls } = expirationsQuerySchema.parse(req.query);
+    const { data } = await service.getExpirations(requireAuth(req), currentBranchId(req), cls);
+    const withValue = data.some((b) => b.value !== undefined);
+    const LABELS = { EXPIRED: 'Caducado', CRITICAL: 'Crítico', WARNING: 'Próximo', OK: 'Normal' } as const;
+    const csv = toCsv(
+      ['Producto', 'SKU', 'Lote', 'Caducidad', 'Días', 'Clasificación', 'Cantidad', 'Estado del lote', 'Proveedor', ...(withValue ? ['Valor al costo'] : [])],
+      data.map((b) => [
+        [b.product.commercialName, b.product.concentration].filter(Boolean).join(' '),
+        b.product.sku, b.lotNumber, b.expiresAt, b.daysLeft, LABELS[b.expiryStatus], b.quantity,
+        b.status === 'QUARANTINE' ? 'Cuarentena' : 'Activo', b.supplier?.name ?? null,
+        ...(withValue ? [b.value] : []),
+      ]),
+    );
+    sendCsv(res, `caducidades_${todayISO()}.csv`, csv);
+  },
   async entry(req: Request, res: Response) {
     const dto = entrySchema.parse(req.body);
     res.status(201).json(await service.registerEntry(requireAuth(req), currentBranchId(req), dto, clientInfo(req)));
@@ -86,6 +107,8 @@ export function inventoryRouter(): Router {
   router.get('/stock/export', authorize('inventory.view'), controller.stockExport);
   router.get('/products/:productId', authorize('inventory.view'), controller.productInventory);
   router.get('/batches', authorize('inventory.view'), controller.batches);
+  router.get('/expirations', authorize('expirations.view'), controller.expirations);
+  router.get('/expirations/export', authorize('expirations.view'), controller.expirationsExport);
   router.get('/movements', authorize('inventory.movements.view'), controller.movements);
   router.get('/movements/export', authorize('inventory.movements.view'), controller.movementsExport);
   router.post('/entries', authorize('inventory.adjust'), controller.entry);

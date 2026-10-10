@@ -225,6 +225,8 @@ function useInvalidatePurchases() {
     void qc.invalidateQueries({ queryKey: purchaseKeys.suppliers });
     void qc.invalidateQueries({ queryKey: inventoryKeys.all });
     void qc.invalidateQueries({ queryKey: catalogKeys.products });
+    // Las alertas (agotados, caducados, pagos) dependen de estos datos
+    void qc.invalidateQueries({ queryKey: ['notifications'] });
   };
 }
 

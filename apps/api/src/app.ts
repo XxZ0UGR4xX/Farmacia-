@@ -15,6 +15,8 @@ import { branchesRouter } from './modules/branches/branches.routes';
 import { catalogRouter } from './modules/catalogs/catalogs.routes';
 import { inventoryRouter } from './modules/inventory/inventory.routes';
 import { UPLOADS_URL_PREFIX, uploadsRoot } from './modules/products/product-images';
+import { refreshAlertsAfterChanges } from './modules/notifications/alerts.service';
+import { notificationsRouter } from './modules/notifications/notifications.routes';
 import { productsRouter } from './modules/products/products.routes';
 import { purchasesRouter } from './modules/purchases/purchases.routes';
 import { returnsRouter, salesRouter } from './modules/sales/sales.routes';
@@ -88,12 +90,13 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/branches', branchesRouter());
   app.use('/api/v1/categories', catalogRouter('category'));
   app.use('/api/v1/laboratories', catalogRouter('laboratory'));
-  app.use('/api/v1/products', productsRouter());
-  app.use('/api/v1/inventory', inventoryRouter());
+  app.use('/api/v1/products', refreshAlertsAfterChanges, productsRouter());
+  app.use('/api/v1/inventory', refreshAlertsAfterChanges, inventoryRouter());
   app.use('/api/v1/suppliers', suppliersRouter());
-  app.use('/api/v1/purchases', purchasesRouter());
-  app.use('/api/v1/sales', salesRouter());
-  app.use('/api/v1/returns', returnsRouter());
+  app.use('/api/v1/purchases', refreshAlertsAfterChanges, purchasesRouter());
+  app.use('/api/v1/sales', refreshAlertsAfterChanges, salesRouter());
+  app.use('/api/v1/returns', refreshAlertsAfterChanges, returnsRouter());
+  app.use('/api/v1/notifications', notificationsRouter());
   app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);

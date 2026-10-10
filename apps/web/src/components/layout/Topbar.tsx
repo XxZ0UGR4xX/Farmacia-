@@ -1,7 +1,8 @@
-import { Bell, Building2, ChevronDown, KeyRound, LogOut, Menu } from 'lucide-react';
+import { Building2, ChevronDown, KeyRound, LogOut, Menu } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../../auth/useAuth';
+import { NotificationBell } from '../../features/notifications/NotificationBell';
 import { initials } from '../../lib/format';
 
 function UserMenu() {
@@ -105,16 +106,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
       )}
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {can('notifications.view') && (
-          <button
-            type="button"
-            className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Notificaciones"
-            title="Centro de notificaciones (Fase 7)"
-          >
-            <Bell className="size-5" />
-          </button>
-        )}
+        {can('notifications.view') && <NotificationBell />}
         <UserMenu />
       </div>
     </header>
