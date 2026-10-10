@@ -33,3 +33,23 @@
     outline-offset: 2px;
   }
 }
+
+/* Impresión de tickets: sólo se imprime el contenedor .print-area (80 mm) */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 72mm;
+  }
+}

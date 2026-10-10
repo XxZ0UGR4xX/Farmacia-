@@ -28,6 +28,7 @@
     "@farmacia/shared": "^0.1.0",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.104.1",
+    "@zxing/browser": "0.2.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.53.0",
     "react": "^19.3.0",

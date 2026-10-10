@@ -10,12 +10,67 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 3 | Productos + categorías + laboratorios | ✅ Completa |
 | 4 | Lotes + inventario + movimientos | ✅ Completa |
 | 5 | Proveedores + compras | ✅ Completa |
-| 6 | Punto de venta + ventas + devoluciones | ⏳ Siguiente |
-| 7 | Caducidades + alertas + notificaciones | Pendiente |
+| 6 | Punto de venta + ventas + devoluciones | ✅ Completa |
+| 7 | Caducidades + alertas + notificaciones | ⏳ Siguiente |
 | 8 | Pacientes + recetas | Pendiente |
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | Pendiente |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
+
+## Fase 6: entregado
+
+**Punto de venta** (`/ventas/punto-de-venta`)
+- **Lector USB** (código + Enter), búsqueda por nombre sin acentos y **escáner con la cámara** del
+  celular, tablet o webcam (la imagen se procesa en el navegador; no se guarda ni se envía). La
+  librería de la cámara se descarga sólo al abrir el escáner.
+- Carrito con cantidades limitadas a la existencia disponible, aviso de productos sin existencia,
+  descuentos por partida (sólo con permiso) y total con IVA desglosado.
+- Cobro en **efectivo** (con billetes rápidos y cambio), **tarjeta**, **transferencia** o **mixto**.
+- Productos con receta: la venta no se cobra hasta confirmar "Revisé la receta médica".
+- Atajos: `F2` buscar, `F9` cobrar. El carrito sobrevive a una recarga accidental de la página.
+- **Ticket** para impresora térmica de 80 mm con los datos de la farmacia, folio, cajero, productos,
+  IVA, forma de pago y cambio.
+
+**Reglas del cobro (en el servidor)**
+- Precios, IVA y totales salen del catálogo: el navegador no puede fijar un precio. Si un precio
+  cambió mientras se capturaba la venta, el cobro se rechaza y el carrito se actualiza.
+- Cada partida se surte con **FEFO** y cada lote usado deja su movimiento "Venta"; todo en una
+  transacción con los lotes bloqueados. Dos ventas simultáneas no venden más de lo que hay.
+- **No se cobra dos veces:** cada cobro lleva un identificador; un doble clic o un reintento por
+  falla de red devuelve la misma venta.
+- Los pagos deben sumar exactamente el total; sólo el efectivo da cambio.
+- Nunca se venden lotes caducados, en cuarentena ni productos inactivos.
+
+**Historial y corte** (`/ventas/historial`)
+- Corte del día (o del periodo): número de ventas, total, ticket promedio, devoluciones, desglose
+  por forma de pago y el efectivo que debe haber en caja.
+- Sin permiso de reportes, cada quien ve sus propias ventas (su corte); un folio exacto se puede
+  buscar en toda la sucursal para hacer una devolución.
+- Detalle con los lotes de los que salió cada producto, pagos, devoluciones y reimpresión del ticket.
+  El costo y la utilidad sólo los ve quien puede ver costos.
+
+**Cancelación y devoluciones** (`/ventas/devoluciones`)
+- **Cancelar** (permiso sensible) regresa las unidades a los mismos lotes de los que salieron.
+- **Devolución** parcial o total con motivo y forma de reembolso. El reembolso es proporcional a lo
+  cobrado (incluye el descuento) y la suma de devoluciones nunca pasa de lo cobrado.
+- Lo devuelto queda **en revisión**: no se vuelve a vender hasta que alguien con permiso de
+  inventario lo revisa y decide regresarlo al lote o desecharlo. Un lote caducado sólo se desecha.
+- El cajero consulta ventas y devoluciones pero no cancela ni devuelve.
+- Todo queda en auditoría: venta (con los productos con receta), cancelación, devolución y revisión.
+
+**Datos de demostración:** 50 ventas de los últimos 30 días (4 de hoy) a nombre de la cajera, el
+farmacéutico y el propietario, surtidas con FEFO en orden cronológico, con 2 cancelaciones y 2
+devoluciones (una en revisión). Se conservan los casos de inventario de la Fase 4 (lote caducado y
+productos con stock bajo). La carga inicial de demostración ahora queda fechada cuando llegó cada lote.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 185 pruebas de API (15 nuevas: FEFO, caducados, precio del servidor, pagos, descuentos,
+  receta, reintentos, ventas simultáneas, cancelación, devoluciones y revisión) y 60 de frontend (7 nuevas).
+- En una base nueva con los datos de demostración, el historial de cada lote cuadra: 0 saltos en 160 movimientos.
+- Navegador real: venta con lector y búsqueda, cambio, ticket impreso, producto con receta, límite
+  de existencia, escáner sin cámara con mensaje claro, corte de la cajera, devolución y revisión por
+  el farmacéutico, cancelación por el propietario, FEFO y vista móvil. Sin errores en la consola.
 
 ## Fase 5: entregado
 

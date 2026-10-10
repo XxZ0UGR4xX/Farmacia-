@@ -141,6 +141,23 @@ Quien ve compras ve sus importes (es la factura con la que trabaja). Todos los i
 
 Errores por partida: `details[].path` como `items.1.expiresAt` y el mensaje empieza con "Partida 2:".
 
+## Ventas (`/sales`) y devoluciones (`/returns`)
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `POST /sales` | `sales.create` | Cobro: `items[]` (`productId`, `quantity`, `discount?` con `sales.discount`), `payments[]` (`method`, `amount`, `received?` sólo efectivo, `reference?`), `prescriptionChecked`, `expectedTotal?`, `clientRequestId?` |
+| `GET /sales` | `sales.view` | Lista + `summary` (corte por forma de pago y reembolsos) + `scope` (`own` sin `reports.view`). Filtros: `q` (folio `V-000012` o producto), `from`, `to`, `status`, `paymentMethod`, `userId` |
+| `GET /sales/:id` | `sales.view` | Detalle con lotes, pagos, devoluciones y `header` del ticket. `costTotal`/`profit` sólo para quien ve costos |
+| `POST /sales/:id/cancel` | `sales.cancel` | `{ reason }`. Regresa las unidades a sus lotes (`SALE_CANCELLATION`). 422 si tiene devoluciones |
+| `POST /sales/:id/returns` | `returns.create` | `{ reason, refundMethod, items[]: { saleItemId, quantity, disposition } }`. `disposition` por omisión `QUARANTINE`; `RESTOCKED` requiere `inventory.adjust` |
+| `GET /returns` | `returns.view` | Devoluciones + `summary.pendingItems`. Filtros: `q`, `pending=true` |
+| `POST /returns/:id/items/:itemId/review` | `inventory.adjust` | `{ decision: RESTOCK \| DISCARD, notes? }` para lo que quedó en revisión |
+
+Respuestas relevantes del cobro:
+- `422` con `details[].path` `items.N.quantity` cuando no alcanza la existencia (`available`), o `items.N.productId` si falta confirmar la receta.
+- `409` si `expectedTotal` no coincide con el total calculado (cambió un precio).
+- Un `clientRequestId` repetido devuelve la venta original con `201` (no cobra dos veces).
+
 ## Configuración
 
 | Método y ruta | Permiso | Descripción |

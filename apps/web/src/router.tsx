@@ -23,6 +23,10 @@ import { PurchaseDetailPage } from './features/purchases/PurchaseDetailPage';
 import { PurchaseFormPage } from './features/purchases/PurchaseFormPage';
 import { PurchasesListPage } from './features/purchases/PurchasesListPage';
 import { SuppliersPage } from './features/purchases/SuppliersPage';
+import { PosPage } from './features/sales/PosPage';
+import { ReturnsPage } from './features/sales/ReturnsPage';
+import { SaleDetailPage } from './features/sales/SaleDetailPage';
+import { SalesHistoryPage } from './features/sales/SalesHistoryPage';
 import { RoleEditorPage } from './features/users/RoleEditorPage';
 import { RolesListPage } from './features/users/RolesListPage';
 import { UsersLayout } from './features/users/UsersLayout';
@@ -38,6 +42,34 @@ function HomeRoute() {
 
 /** Módulos ya implementados, con sus rutas reales. */
 const implementedRoutes: RouteObject[] = [
+  {
+    path: 'ventas/punto-de-venta',
+    element: (
+      <RequirePermission permission="sales.create">
+        <PosPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'ventas/historial',
+    element: (
+      <RequirePermission permission="sales.view">
+        <Outlet />
+      </RequirePermission>
+    ),
+    children: [
+      { index: true, element: <SalesHistoryPage /> },
+      { path: ':id', element: <SaleDetailPage /> },
+    ],
+  },
+  {
+    path: 'ventas/devoluciones',
+    element: (
+      <RequirePermission permission="returns.view">
+        <ReturnsPage />
+      </RequirePermission>
+    ),
+  },
   {
     path: 'inventario/existencias',
     element: (
