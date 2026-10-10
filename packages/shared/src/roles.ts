@@ -59,6 +59,7 @@ export const SYSTEM_ROLES: Record<SystemRoleCode, RoleDefinition> = {
       'returns.view',
       'returns.create',
       'patients.view',
+      'patients.manage',
       'prescriptions.view',
       'prescriptions.manage',
       'suppliers.view',

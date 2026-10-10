@@ -34,18 +34,24 @@
   }
 }
 
-/* Impresión de tickets: sólo se imprime el contenedor .print-area (80 mm) */
+/* Impresión: sólo se imprime .print-area (ticket de 80 mm) o .print-page (documento de página completa) */
 @media print {
   @page {
-    size: 80mm auto;
-    margin: 4mm;
+    margin: 10mm;
   }
   body * {
     visibility: hidden;
   }
   .print-area,
-  .print-area * {
+  .print-area *,
+  .print-page,
+  .print-page * {
     visibility: visible;
+  }
+  /* Documentos de página completa (p. ej. receta registrada) */
+  .print-page {
+    position: absolute;
+    inset: 0 0 auto 0;
   }
   .print-area {
     position: absolute;

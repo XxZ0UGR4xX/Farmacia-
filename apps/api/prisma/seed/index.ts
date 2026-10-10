@@ -16,6 +16,7 @@ import { PrismaClient } from '../../src/generated/prisma/client';
 import { seedMainBranch, seedOwner, seedPermissions, seedRoles, seedSettings } from './core';
 import { seedDemoCatalog } from './demo-catalog';
 import { seedDemoInventory } from './demo-inventory';
+import { seedDemoPatients } from './demo-patients';
 import { seedDemoPurchases, seedDemoSuppliers } from './demo-purchases';
 import { seedDemoSales } from './demo-sales';
 import { DEMO_USERS, seedDemoUsers } from './demo';
@@ -29,8 +30,8 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: data
 
 async function main() {
   console.log('🌱 Sembrando catálogo de permisos y roles...');
-  await seedPermissions(prisma);
-  await seedRoles(prisma);
+  const newPermissions = await seedPermissions(prisma);
+  await seedRoles(prisma, newPermissions);
 
   console.log('🏥 Sucursal principal y configuración...');
   const branch = await seedMainBranch(prisma);
@@ -113,6 +114,9 @@ async function seedDemo(branchId: string) {
     });
     const sales = await seedDemoSales(prisma, branchId, [owner.id, ...sellers.map((s) => s.id)]);
     console.log(`   🧾 Ventas: ${sales.sales} venta(s) nueva(s) (con 2 cancelaciones y 2 devoluciones)`);
+
+    const patients = await seedDemoPatients(prisma, branchId, owner.id);
+    console.log(`   🩺 Pacientes ficticios: ${patients.patients} nuevo(s), ${patients.prescriptions} receta(s)`);
   }
 }
 

@@ -82,6 +82,8 @@ export function PrintableTicket({ sale }: { sale: Sale | null }) {
   if (!sale) return null;
   return createPortal(
     <div className="print-area pointer-events-none fixed -left-[9999px] top-0 w-[72mm] bg-white" aria-hidden>
+      {/* Hoja de la impresora térmica, sólo mientras el ticket está montado */}
+      <style>{'@media print { @page { size: 80mm auto; margin: 4mm; } }'}</style>
       <Ticket sale={sale} />
     </div>,
     document.body,

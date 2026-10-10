@@ -7,3 +7,4 @@ export * from './inventory';
 export * from './purchases';
 export * from './sales';
 export * from './notifications';
+export * from './patients';

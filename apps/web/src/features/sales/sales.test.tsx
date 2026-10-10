@@ -45,6 +45,9 @@ const sale = (extra: Partial<Sale> = {}): Sale => ({
   total: 70,
   refunded: 0,
   prescriptionChecked: false,
+  patient: null,
+  hasPatient: false,
+  prescription: null,
   notes: null,
   items: [
     {
@@ -117,7 +120,7 @@ describe('PosPage', () => {
     mockApi({
       'GET /settings/defaults': defaults,
       'GET /products/barcode/111111': { product: product({ id: 'p2', commercialName: 'Agotado', stock: 0 }) },
-      'GET /products/barcode/222222': { product: product({ id: 'p3', commercialName: 'Amoxicilina 500 mg', requiresPrescription: true, isControlled: true }) },
+      'GET /products/barcode/222222': { product: product({ id: 'p3', commercialName: 'Losartán 50 mg', requiresPrescription: true }) },
     });
     renderApp(<PosPage />, { user: sessionUser('CASHIER') });
     const search = screen.getByLabelText('Producto');
@@ -180,6 +183,54 @@ describe('PosPage', () => {
           { method: 'CARD', amount: 20 },
           { method: 'CASH', amount: 10, received: 20 },
         ],
+      }),
+    );
+  });
+});
+
+describe('PosPage: productos que retienen receta', () => {
+  const antibiotic = product({ id: 'p9', commercialName: 'Amoxicilina 500 mg', requiresPrescription: true, isControlled: true });
+
+  it('la cajera no puede cobrarlos: debe completarlos quien registra recetas', async () => {
+    mockApi({ 'GET /settings/defaults': defaults, 'GET /products/barcode/333333': { product: antibiotic } });
+    renderApp(<PosPage />, { user: sessionUser('CASHIER') });
+    await userEvent.type(screen.getByLabelText('Producto'), '333333{Enter}');
+    await screen.findByTestId('cart-line');
+    expect(screen.getByText(/Pide a quien registra recetas/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /Tarjeta/ }));
+    expect(screen.getByRole('button', { name: /^Cobrar/ })).toBeDisabled();
+  });
+
+  it('el farmacéutico elige al paciente y registra la receta al cobrar', async () => {
+    const fetchMock = mockApi({
+      'GET /settings/defaults': defaults,
+      'GET /products/barcode/333333': { product: antibiotic },
+      'GET /patients/search': { items: [{ id: 'pa1', fullName: 'María Fernanda Gómez Ficticio', age: 41, phone: '•••• 1000' }] },
+      'GET /prescriptions': { data: [], meta: { page: 1, pageSize: 5, total: 0, totalPages: 1 } },
+      'POST /sales': { sale: sale() },
+    });
+    renderApp(<PosPage />, { user: sessionUser('PHARMACIST') });
+    await userEvent.type(screen.getByLabelText('Producto'), '333333{Enter}');
+    const panel = await screen.findByTestId('rx-panel');
+    await userEvent.click(screen.getByRole('radio', { name: /Tarjeta/ }));
+    const charge = screen.getByRole('button', { name: /^Cobrar/ });
+    expect(charge).toBeDisabled();
+
+    await userEvent.type(within(panel).getByLabelText('Paciente'), 'maria');
+    await userEvent.click(await within(panel).findByRole('button', { name: /María Fernanda/ }));
+    expect(await within(panel).findByText(/no tiene recetas vigentes sin surtir/)).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole('radio', { name: /Registrar la receta/ }));
+    await userEvent.type(within(panel).getByLabelText('Médico que prescribe'), 'Dra. Laura Ejemplo');
+    await userEvent.type(within(panel).getByLabelText('Cédula (opcional)'), '123');
+    expect(charge).toBeDisabled();
+    await userEvent.clear(within(panel).getByLabelText('Cédula (opcional)'));
+    await userEvent.type(within(panel).getByLabelText('Cédula (opcional)'), '90012345');
+    await userEvent.click(charge);
+    await waitFor(() =>
+      expect(lastPost(fetchMock)).toMatchObject({
+        patientId: 'pa1',
+        prescription: { doctorName: 'Dra. Laura Ejemplo', doctorLicense: '90012345' },
+        prescriptionChecked: true,
       }),
     );
   });

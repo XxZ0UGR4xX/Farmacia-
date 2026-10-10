@@ -12,10 +12,61 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 5 | Proveedores + compras | ✅ Completa |
 | 6 | Punto de venta + ventas + devoluciones | ✅ Completa |
 | 7 | Caducidades + alertas + notificaciones | ✅ Completa |
-| 8 | Pacientes + recetas | ⏳ Siguiente |
-| 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | Pendiente |
+| 8 | Pacientes + recetas | ✅ Completa |
+| 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | ⏳ Siguiente |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
+
+## Fase 8: entregado
+
+> El sistema es una **herramienta administrativa y de registro**: transcribe lo que indicó el
+> médico y **nunca sugiere, calcula ni determina tratamientos**. El aviso aparece en cada pantalla
+> de pacientes y recetas.
+
+**Pacientes** (`/pacientes`)
+- Alta y edición (nombre, fecha de nacimiento, teléfono, correo, dirección, notas administrativas).
+  No se duplican (mismo nombre y fecha de nacimiento) y no se borran: su historial se conserva.
+- Búsqueda sin acentos por nombre, apellidos, teléfono o correo.
+- **Protección de datos personales:**
+  - El listado muestra lo mínimo, con el teléfono enmascarado (`•••• 4321`).
+  - Cada consulta de un expediente queda en auditoría (quién vio a quién) y se avisa en pantalla.
+  - La bitácora registra *qué campos* cambiaron, no sus valores, y nunca nombres ni medicamentos.
+  - El registro del servidor no guarda lo que se busca en pacientes y recetas.
+- Expediente con sus recetas y sus compras (cada sección sólo si se tiene el permiso).
+
+**Recetas** (`/pacientes/recetas`)
+- Registro del médico (nombre y cédula de 7 u 8 dígitos), fecha (no futura ni de más de un año) y
+  los medicamentos **tal como vienen escritos**: dosis, frecuencia, duración e indicaciones, en el
+  mismo orden. Cada medicamento se puede vincular al producto del catálogo.
+- **Inmutables:** no hay edición ni borrado y la base de datos lo impide con triggers. Si hay un
+  error, sólo el propietario o el administrador la **anula con un motivo** (permiso sensible nuevo
+  `prescriptions.void`), queda en el historial marcada como anulada y se registra una nueva. Una
+  receta que ya se surtió no se anula: es el respaldo de esa venta.
+- Búsqueda por folio (`R-000012`), paciente, médico o cédula; filtros por fecha; impresión.
+
+**Punto de venta**
+- Los productos que **retienen receta** (antibióticos y controlados) exigen ligar la receta del
+  paciente: una registrada que aún no se surte, o registrarla en el momento con el médico y la cédula.
+  Una receta retenida se surte una sola vez (salvo que esa venta se cancele).
+- Los que sólo **requieren** receta mantienen la confirmación "Revisé la receta médica".
+- La cajera no registra recetas: el punto de venta le indica que lo complete el farmacéutico.
+- El detalle de la venta muestra el paciente y la receta sólo a quien puede ver pacientes.
+
+**Permisos por omisión** (instalaciones nuevas): el farmacéutico ahora también da de alta
+pacientes. En una instalación existente, el propietario puede agregarlo desde Roles.
+
+**Datos de demostración:** 15 pacientes **ficticios** (correos `@paciente-demo.local`, teléfonos
+`55 0000…`), médicos y cédulas inventados, 10 recetas, y las ventas de demostración de
+antibióticos quedan ligadas a su receta.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 204 pruebas de API (13 nuevas: búsqueda sin acentos, datos mínimos, auditoría sin
+  datos personales, inmutabilidad en la base de datos, anulación, receta obligatoria al vender
+  antibióticos, receta surtida una sola vez y visibilidad por rol) y 71 de frontend (7 nuevas).
+- Navegador real: expediente con aviso de confidencialidad, receta vinculada al catálogo, venta de
+  antibiótico registrando la receta, cajera bloqueada, teléfonos enmascarados, anulación por la
+  administradora y vista móvil. Sin errores en la consola.
 
 ## Fase 7: entregado
 

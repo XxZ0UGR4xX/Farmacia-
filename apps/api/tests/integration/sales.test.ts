@@ -150,7 +150,7 @@ describe('POST /sales: cobro', () => {
   });
 
   it('un producto con receta exige confirmar que se revisó', async () => {
-    const p = await newProduct({ requiresPrescription: true, isControlled: true });
+    const p = await newProduct({ requiresPrescription: true });
     await stock(p.id, 'L1', 10, 300);
     const body = { items: [{ productId: p.id, quantity: 1 }], payments: cash(25) };
     const res = await sell(cashier.token, body);

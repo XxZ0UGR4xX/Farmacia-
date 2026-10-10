@@ -233,6 +233,29 @@ export function SaleDetailPage() {
           <p className="mt-1 text-sm text-slate-500">
             {formatDateTime(s.createdAt)} · Atendió {s.createdBy.fullName}
           </p>
+          {(s.patient || s.prescription || s.hasPatient) && (
+            <p className="mt-1 text-sm text-slate-600">
+              {s.patient ? (
+                <>
+                  Paciente:{' '}
+                  <Link to={`/pacientes/${s.patient.id}`} className="font-medium text-slate-900 hover:text-brand-700">
+                    {s.patient.fullName}
+                  </Link>
+                </>
+              ) : (
+                s.hasPatient && 'Venta ligada a un paciente'
+              )}
+              {s.prescription && (
+                <>
+                  {' · Receta '}
+                  <Link to={`/pacientes/recetas/${s.prescription.id}`} className="font-mono font-medium text-slate-900 hover:text-brand-700">
+                    {s.prescription.folio}
+                  </Link>{' '}
+                  ({s.prescription.doctorName})
+                </>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

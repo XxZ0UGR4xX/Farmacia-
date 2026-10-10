@@ -169,6 +169,27 @@ Respuestas relevantes del cobro:
 | `POST /notifications/:id/read` | `notifications.view` | Marca una como leída (por usuario) |
 | `POST /notifications/read-all` | `notifications.view` | Marca todas como leídas |
 
+## Pacientes (`/patients`) y recetas (`/prescriptions`)
+
+Información sensible: cada consulta de un expediente o receta queda en auditoría.
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /patients` | `patients.view` | Lista con datos mínimos (teléfono enmascarado, edad, recetas, compras, última visita). Filtro: `q` |
+| `GET /patients/search` | `patients.view` | `q` (mínimo 2 caracteres): hasta 10 resultados para selectores |
+| `GET /patients/:id` | `patients.view` | Expediente completo; recetas con `prescriptions.view` y compras con `sales.view`. Audita `PATIENT_VIEW` |
+| `POST /patients` | `patients.manage` | Alta. 409 si ya existe con el mismo nombre y fecha de nacimiento |
+| `PATCH /patients/:id` | `patients.manage` | Edición parcial (la auditoría guarda sólo los nombres de los campos) |
+| `GET /prescriptions` | `prescriptions.view` | Filtros: `q` (folio `R-000012`, paciente, médico, cédula), `patientId`, `from`, `to`, `includeVoided` |
+| `GET /prescriptions/:id` | `prescriptions.view` | Detalle con medicamentos y ventas surtidas. Audita `PRESCRIPTION_VIEW` |
+| `POST /prescriptions` | `prescriptions.manage` | `{ patientId, doctorName, doctorLicense?, issuedAt, notes?, items[]: { medicationName, productId?, dose?, frequency?, duration?, instructions? } }` |
+| `POST /prescriptions/:id/void` | `prescriptions.void` | `{ reason }`. 422 si ya surtió una venta. No existe edición ni borrado |
+
+En `POST /sales`, los productos que retienen receta requieren `prescriptionId` (una receta sin surtir)
+o `prescription: { doctorName, doctorLicense?, issuedAt }` junto con `patientId` (requiere
+`prescriptions.manage`). La respuesta de la venta incluye `patient` y `prescription` sólo para
+quien tiene `patients.view`.
+
 ## Configuración
 
 | Método y ruta | Permiso | Descripción |

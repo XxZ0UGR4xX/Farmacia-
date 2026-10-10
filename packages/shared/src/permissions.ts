@@ -42,7 +42,8 @@ export const PERMISSIONS = {
   'patients.view': { module: 'patients', description: 'Ver pacientes', sensitive: true },
   'patients.manage': { module: 'patients', description: 'Crear y editar pacientes', sensitive: true },
   'prescriptions.view': { module: 'patients', description: 'Ver recetas', sensitive: true },
-  'prescriptions.manage': { module: 'patients', description: 'Registrar y editar recetas' },
+  'prescriptions.manage': { module: 'patients', description: 'Registrar recetas' },
+  'prescriptions.void': { module: 'patients', description: 'Anular recetas registradas (el historial no se borra)', sensitive: true },
 
   // Reportes
   'reports.view': { module: 'reports', description: 'Ver reportes operativos' },

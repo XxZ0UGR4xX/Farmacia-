@@ -1,5 +1,6 @@
 import {
   cashChange,
+  formatPrescriptionNumber,
   formatReturnNumber,
   formatSaleNumber,
   hasPermission,
@@ -16,6 +17,7 @@ import type { AuthContext, ClientInfo } from '../../shared/request-context';
 import { recordAudit } from '../audit/audit.service';
 import { allocateFefo, applyMovement } from '../inventory/inventory.core';
 import { canSeeCosts } from '../products/products.service';
+import { createPrescriptionInTx } from '../patients/prescriptions.service';
 import { getSetting } from '../settings/settings.service';
 import type { CreateSaleDto, ListSalesDto } from './sales.schemas';
 
@@ -52,6 +54,8 @@ export const saleInclude = {
   createdBy: userName,
   cancelledBy: userName,
   branch: { select: { id: true, name: true, address: true, phone: true } },
+  patient: { select: { id: true, firstName: true, lastName: true } },
+  prescription: { select: { id: true, number: true, doctorName: true } },
 } satisfies Prisma.SaleInclude;
 
 type SaleRow = Prisma.SaleGetPayload<{ include: typeof saleInclude }>;
@@ -61,7 +65,7 @@ async function ticketHeader() {
   return { name: profile.name, address: profile.address ?? null, phone: profile.phone ?? null, rfc: fiscal.rfc ?? null, legalName: fiscal.legalName ?? null };
 }
 
-function toDto(s: SaleRow, opts: { costs: boolean; header?: Awaited<ReturnType<typeof ticketHeader>> }) {
+function toDto(s: SaleRow, opts: { costs: boolean; patients?: boolean; header?: Awaited<ReturnType<typeof ticketHeader>> }) {
   const costTotal = Number(s.costTotal);
   const refunded = r2(s.returns.reduce((sum, r) => sum + Number(r.refundTotal), 0));
   return {
@@ -77,6 +81,10 @@ function toDto(s: SaleRow, opts: { costs: boolean; header?: Awaited<ReturnType<t
     refunded,
     ...(opts.costs ? { costTotal, profit: r2(Number(s.subtotal) - costTotal) } : {}),
     prescriptionChecked: s.prescriptionChecked,
+    // Datos del paciente sólo para quien puede ver pacientes
+    patient: s.patient && opts.patients ? { id: s.patient.id, fullName: `${s.patient.firstName} ${s.patient.lastName}`.trim() } : null,
+    hasPatient: s.patient !== null,
+    prescription: s.prescription && opts.patients ? { id: s.prescription.id, folio: formatPrescriptionNumber(s.prescription.number), doctorName: s.prescription.doctorName } : null,
     notes: s.notes,
     items: s.items.map((i) => ({
       id: i.id,
@@ -128,7 +136,7 @@ async function findSale(db: DbClient, branchId: string, id: string): Promise<Sal
 
 export async function getSale(auth: AuthContext, branchId: string, id: string) {
   const [sale, header] = await Promise.all([findSale(prisma, branchId, id), ticketHeader()]);
-  return toDto(sale, { costs: canSeeCosts(auth), header });
+  return toDto(sale, { costs: canSeeCosts(auth), patients: hasPermission(auth.roleCode, auth.permissions, 'patients.view'), header });
 }
 
 /** Bloquea la venta hasta el fin de la transacción (cancelación y devoluciones no se cruzan). */
@@ -175,11 +183,47 @@ export async function createSale(auth: AuthContext, branchId: string, dto: Creat
     if (item.discount > amounts.gross + 0.005) {
       itemError(index, 'discount', AppError.badRequest('El descuento no puede ser mayor que el importe'));
     }
-    if ((product.requiresPrescription || product.isControlled) && !dto.prescriptionChecked) {
-      itemError(index, 'productId', AppError.businessRule(`${product.commercialName} requiere receta médica: confirma que la revisaste`));
-    }
     return { index, item, product, unitPrice, taxRate, amounts };
   });
+
+  // Receta: los productos que la retienen (antibióticos, controlados) exigen ligarla o registrarla;
+  // los que sólo la requieren, confirmar que se revisó
+  if (dto.prescription && !hasPermission(auth.roleCode, auth.permissions, 'prescriptions.manage')) {
+    throw AppError.forbidden('No tienes permiso para registrar recetas; pide apoyo a quien pueda hacerlo.');
+  }
+  if (dto.patientId && !(await prisma.patient.findFirst({ where: { id: dto.patientId, deletedAt: null }, select: { id: true } }))) {
+    throw AppError.badRequest('El paciente no existe', [{ path: 'patientId', message: 'Paciente inválido' }]);
+  }
+  let linked: { id: string; patientId: string } | null = null;
+  if (dto.prescriptionId) {
+    linked = await prisma.prescription.findFirst({ where: { id: dto.prescriptionId, deletedAt: null }, select: { id: true, patientId: true } });
+    if (!linked) throw AppError.businessRule('La receta no existe o está anulada', [{ path: 'prescriptionId', message: 'Receta inválida' }]);
+    if (dto.patientId && linked.patientId !== dto.patientId) {
+      throw AppError.badRequest('La receta es de otro paciente', [{ path: 'prescriptionId', message: 'No corresponde al paciente' }]);
+    }
+    // Una receta que se retiene (antibióticos, controlados) se surte una sola vez
+    if (lines.some((l) => l.product.isControlled)) {
+      const used = await prisma.sale.findFirst({ where: { prescriptionId: linked.id, status: { not: 'CANCELLED' } }, select: { number: true } });
+      if (used) {
+        throw AppError.businessRule(`La receta ya se surtió en la venta ${formatSaleNumber(used.number)}; registra la receta nueva.`, [
+          { path: 'prescriptionId', message: 'Receta ya surtida' },
+        ]);
+      }
+    }
+  }
+  if (dto.prescription && !lines.some((l) => l.product.requiresPrescription || l.product.isControlled)) {
+    throw AppError.badRequest('Ningún producto de la venta requiere receta', [{ path: 'prescription', message: 'No hace falta registrar receta' }]);
+  }
+  const hasPrescription = Boolean(linked || dto.prescription);
+  for (const l of lines) {
+    if (l.product.isControlled && !hasPrescription) {
+      itemError(l.index, 'productId', AppError.businessRule(`${l.product.commercialName} retiene receta: liga o registra la receta del paciente`));
+    }
+    if (l.product.requiresPrescription && !hasPrescription && !dto.prescriptionChecked) {
+      itemError(l.index, 'productId', AppError.businessRule(`${l.product.commercialName} requiere receta médica: confirma que la revisaste`));
+    }
+  }
+  const prescriptionChecked = dto.prescriptionChecked || hasPrescription;
 
   const totals = saleTotals(
     lines.map((l) => ({ quantity: l.item.quantity, unitPrice: l.unitPrice, discount: l.item.discount, taxRate: l.taxRate })),
@@ -204,6 +248,30 @@ export async function createSale(auth: AuthContext, branchId: string, dto: Creat
   let saleId: string;
   try {
     saleId = await prisma.$transaction(async (tx) => {
+      // Receta registrada al surtir: lleva los medicamentos con receta de esta venta
+      const rxId =
+        linked?.id ??
+        (dto.prescription
+          ? (
+              await createPrescriptionInTx(
+                tx,
+                auth,
+                branchId,
+                {
+                  patientId: dto.patientId!,
+                  doctorName: dto.prescription.doctorName,
+                  doctorLicense: dto.prescription.doctorLicense ?? null,
+                  issuedAt: dto.prescription.issuedAt,
+                  notes: dto.prescription.notes ?? null,
+                  items: lines
+                    .filter((l) => l.product.requiresPrescription || l.product.isControlled)
+                    .map((l) => ({ productId: l.product.id, medicationName: l.product.commercialName, dose: null, frequency: null, duration: null, instructions: null })),
+                },
+                client,
+                'sale',
+              )
+            ).id
+          : null);
       const sale = await tx.sale.create({
         data: {
           branchId,
@@ -213,7 +281,9 @@ export async function createSale(auth: AuthContext, branchId: string, dto: Creat
           total: totals.total,
           costTotal: 0,
           notes: dto.notes,
-          prescriptionChecked: dto.prescriptionChecked,
+          prescriptionChecked,
+          patientId: dto.patientId ?? linked?.patientId ?? null,
+          prescriptionId: rxId,
           clientRequestId: dto.clientRequestId ?? null,
           createdById: auth.userId,
         },
@@ -294,7 +364,8 @@ export async function createSale(auth: AuthContext, branchId: string, dto: Creat
             total: totals.total,
             discountTotal: totals.discountTotal,
             payments: dto.payments.map((p) => `${PAYMENT_METHOD_LABELS[p.method]} ${p.amount.toFixed(2)}`),
-            prescriptionChecked: dto.prescriptionChecked,
+            prescriptionChecked,
+            prescriptionId: rxId,
             prescriptionProducts: lines.filter((l) => l.product.requiresPrescription || l.product.isControlled).map((l) => l.product.commercialName),
           },
           client,

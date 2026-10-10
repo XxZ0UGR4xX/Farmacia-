@@ -20,6 +20,10 @@ import { ProductFormPage } from './features/products/ProductFormPage';
 import { ProductsLayout } from './features/products/ProductsLayout';
 import { ProductsListPage } from './features/products/ProductsListPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
+import { PatientDetailPage } from './features/patients/PatientDetailPage';
+import { PatientsPage } from './features/patients/PatientsPage';
+import { PrescriptionDetailPage } from './features/patients/PrescriptionDetailPage';
+import { PrescriptionsPage } from './features/patients/PrescriptionsPage';
 import { ProfilePage } from './features/profile/ProfilePage';
 import { PurchaseDetailPage } from './features/purchases/PurchaseDetailPage';
 import { PurchaseFormPage } from './features/purchases/PurchaseFormPage';
@@ -99,6 +103,30 @@ const implementedRoutes: RouteObject[] = [
         <ExpirationsPage />
       </RequirePermission>
     ),
+  },
+  {
+    path: 'pacientes/recetas',
+    element: (
+      <RequirePermission permission="prescriptions.view">
+        <Outlet />
+      </RequirePermission>
+    ),
+    children: [
+      { index: true, element: <PrescriptionsPage /> },
+      { path: ':id', element: <PrescriptionDetailPage /> },
+    ],
+  },
+  {
+    path: 'pacientes',
+    element: (
+      <RequirePermission permission="patients.view">
+        <Outlet />
+      </RequirePermission>
+    ),
+    children: [
+      { index: true, element: <PatientsPage /> },
+      { path: ':id', element: <PatientDetailPage /> },
+    ],
   },
   {
     path: 'notificaciones',

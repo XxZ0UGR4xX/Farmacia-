@@ -22,8 +22,7 @@ export default async function setup() {
 
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
   try {
-    await seedPermissions(prisma);
-    await seedRoles(prisma);
+    await seedRoles(prisma, await seedPermissions(prisma));
     await seedMainBranch(prisma);
     await seedSettings(prisma);
   } finally {

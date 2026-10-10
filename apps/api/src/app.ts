@@ -17,6 +17,7 @@ import { inventoryRouter } from './modules/inventory/inventory.routes';
 import { UPLOADS_URL_PREFIX, uploadsRoot } from './modules/products/product-images';
 import { refreshAlertsAfterChanges } from './modules/notifications/alerts.service';
 import { notificationsRouter } from './modules/notifications/notifications.routes';
+import { patientsRouter, prescriptionsRouter } from './modules/patients/patients.routes';
 import { productsRouter } from './modules/products/products.routes';
 import { purchasesRouter } from './modules/purchases/purchases.routes';
 import { returnsRouter, salesRouter } from './modules/sales/sales.routes';
@@ -49,6 +50,15 @@ export function createApp(options: AppOptions = {}): Express {
       logger,
       genReqId: (req) => (req as express.Request).id,
       autoLogging: { ignore: (req) => req.url === '/api/health' },
+      serializers: {
+        // Datos personales fuera de la bitácora: en pacientes y recetas no se registra la búsqueda
+        req(req: { url?: string; query?: unknown; params?: unknown }) {
+          if (req.url && /^\/api\/v1\/(patients|prescriptions)/.test(req.url)) {
+            return { ...req, url: req.url.split('?')[0], query: undefined };
+          }
+          return req;
+        },
+      },
     }),
   );
 
@@ -97,6 +107,8 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/sales', refreshAlertsAfterChanges, salesRouter());
   app.use('/api/v1/returns', refreshAlertsAfterChanges, returnsRouter());
   app.use('/api/v1/notifications', notificationsRouter());
+  app.use('/api/v1/patients', patientsRouter());
+  app.use('/api/v1/prescriptions', prescriptionsRouter());
   app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);

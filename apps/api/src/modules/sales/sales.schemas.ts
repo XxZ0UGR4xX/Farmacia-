@@ -2,6 +2,7 @@ import { RETURN_DISPOSITIONS, SALE_PAYMENT_METHODS, SALE_STATUSES } from '@farma
 import { z } from 'zod';
 import { paginationSchema, searchParam } from '../../shared/pagination';
 import { isoDate, money, optionalText, quantity } from '../../shared/schema-fields';
+import { prescriptionSchema } from '../patients/patients.schemas';
 
 const positiveMoney = (label: string) => money(label).refine((n) => n > 0, `${label} debe ser mayor a cero`);
 
@@ -39,7 +40,15 @@ export const createSaleSchema = z
     /** Total que vio el cajero; si los precios cambiaron mientras tanto, la venta se rechaza */
     expectedTotal: money('El total').optional(),
     notes: optionalText(500),
+    /** Paciente al que se le vende (opcional; obligatorio si se registra la receta aquí) */
+    patientId: z.uuid().optional(),
+    /** Receta ya registrada con la que se surte */
+    prescriptionId: z.uuid().optional(),
+    /** O bien, registrar la receta en el momento (antibióticos y controlados) */
+    prescription: prescriptionSchema.pick({ doctorName: true, doctorLicense: true, issuedAt: true, notes: true }).optional(),
   })
+  .refine((d) => !d.prescription || d.patientId, { message: 'Selecciona al paciente para registrar su receta', path: ['patientId'] })
+  .refine((d) => !(d.prescription && d.prescriptionId), { message: 'Usa una receta registrada o registra una nueva, no ambas', path: ['prescriptionId'] })
   .superRefine((d, ctx) => {
     const seen = new Set<string>();
     d.items.forEach((item, index) => {

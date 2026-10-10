@@ -6,9 +6,9 @@ compras, proveedores, punto de venta, pacientes, recetas, reportes y auditoría 
 Está pensado para el doctor propietario, que necesita saber de un vistazo cómo está su farmacia.
 La arquitectura admite desde el inicio más empleados, roles y **sucursales** sin reconstruir el sistema.
 
-> **Estado:** Fases 1 a 7 de 11 completas (arquitectura, base de datos, autenticación,
+> **Estado:** Fases 1 a 8 de 11 completas (arquitectura, base de datos, autenticación,
 > usuarios, roles, permisos, productos, catálogos, lotes, existencias, movimientos, proveedores,
-> compras, punto de venta, ventas, devoluciones, caducidades y alertas).
+> compras, punto de venta, ventas, devoluciones, caducidades, alertas, pacientes y recetas).
 > Ver [docs/FASES.md](docs/FASES.md).
 
 ## Tecnología
@@ -83,6 +83,15 @@ Abre http://localhost:5173 e inicia sesión con la cuenta del propietario. Si no
 `SEED_OWNER_PASSWORD`, el seed generó una contraseña aleatoria y la mostró en consola.
 
 En desarrollo, sin SMTP configurado, el enlace de "Recuperar contraseña" aparece en el log de la API.
+
+### Actualizar una instalación existente
+
+```bash
+git pull
+npm install
+npm run db:deploy   # aplica las migraciones nuevas
+npm run db:seed     # registra permisos nuevos (no modifica tus roles personalizados ni tus datos)
+```
 
 ## Despliegue con Docker
 

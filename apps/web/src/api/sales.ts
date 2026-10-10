@@ -71,6 +71,9 @@ export interface Sale {
   costTotal?: number;
   profit?: number;
   prescriptionChecked: boolean;
+  patient: { id: string; fullName: string } | null;
+  hasPatient: boolean;
+  prescription: { id: string; folio: string; doctorName: string } | null;
   notes: string | null;
   items: SaleItem[];
   payments: SalePayment[];
@@ -120,6 +123,9 @@ export interface CreateSaleInput {
   prescriptionChecked: boolean;
   expectedTotal: number;
   notes?: string | null;
+  patientId?: string;
+  prescriptionId?: string;
+  prescription?: { doctorName: string; doctorLicense: string | null; issuedAt: string; notes: string | null };
 }
 
 export interface CreateReturnInput {

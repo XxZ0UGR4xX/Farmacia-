@@ -37,23 +37,29 @@ export const DEFAULT_SETTINGS: Record<string, { value: unknown; description: str
   },
 };
 
-export async function seedPermissions(prisma: PrismaClient): Promise<void> {
+/** Registra el catálogo de permisos. Devuelve los que no existían (nuevos en esta versión). */
+export async function seedPermissions(prisma: PrismaClient): Promise<string[]> {
+  const existing = new Set((await prisma.permission.findMany({ select: { key: true } })).map((p) => p.key));
+  const added: string[] = [];
   for (const key of ALL_PERMISSIONS) {
     const def = PERMISSIONS[key];
+    if (!existing.has(key)) added.push(key);
     await prisma.permission.upsert({
       where: { key },
       update: { module: def.module, description: def.description },
       create: { key, module: def.module, description: def.description },
     });
   }
+  return added;
 }
 
 /**
  * Crea los roles del sistema. A los roles existentes NO se les reescriben los
  * permisos (respeta personalizaciones del propietario), excepto OWNER, que
- * siempre recibe todos.
+ * siempre recibe todos. Los permisos NUEVOS de una actualización sí se otorgan
+ * a los roles del sistema que los incluyen por definición.
  */
-export async function seedRoles(prisma: PrismaClient): Promise<void> {
+export async function seedRoles(prisma: PrismaClient, newPermissions: readonly string[] = []): Promise<void> {
   const permissions = await prisma.permission.findMany();
   const idByKey = new Map(permissions.map((p) => [p.key, p.id]));
 
@@ -65,8 +71,9 @@ export async function seedRoles(prisma: PrismaClient): Promise<void> {
         data: { code, name: def.name, description: def.description, isSystem: true },
       }));
 
-    if (!existing || code === OWNER_ROLE_CODE) {
-      const data = def.permissions
+    const keys = !existing || code === OWNER_ROLE_CODE ? def.permissions : def.permissions.filter((k) => newPermissions.includes(k));
+    if (keys.length) {
+      const data = keys
         .map((key) => idByKey.get(key))
         .filter((id): id is string => Boolean(id))
         .map((permissionId) => ({ roleId: role.id, permissionId }));

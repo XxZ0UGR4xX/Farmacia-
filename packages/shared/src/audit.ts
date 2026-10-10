@@ -48,6 +48,11 @@ export const AUDIT_ACTIONS = {
   RETURN_REVIEW: 'Revisión de producto devuelto',
 
   PATIENT_VIEW: 'Consulta de expediente de paciente',
+  PATIENT_CREATE: 'Alta de paciente',
+  PATIENT_UPDATE: 'Edición de datos de paciente',
+  PRESCRIPTION_CREATE: 'Registro de receta',
+  PRESCRIPTION_VIEW: 'Consulta de receta',
+  PRESCRIPTION_VOID: 'Anulación de receta',
   SETTINGS_UPDATE: 'Cambio de configuración',
 } as const;
 

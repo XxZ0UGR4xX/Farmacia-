@@ -251,6 +251,7 @@ model User {
   salesCancelled     Sale[]              @relation("SaleCancelledBy")
   returns            Return[]
   returnItemsReviewed ReturnItem[]       @relation("ReturnItemReviewedBy")
+  prescriptionsVoided Prescription[]     @relation("PrescriptionVoidedBy")
   prescriptions      Prescription[]
   notificationReads  NotificationRead[]
   auditLogs          AuditLog[]
@@ -794,10 +795,14 @@ model Prescription {
   createdById   String    @map("created_by_id") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Anulación (la receta no se borra ni se edita): fecha, quién y por qué
   deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(3)
+  voidedById    String?   @map("voided_by_id") @db.Uuid
+  voidReason    String?   @map("void_reason") @db.VarChar(255)
 
   patient   Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
   createdBy User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  voidedBy  User?              @relation("PrescriptionVoidedBy", fields: [voidedById], references: [id], onDelete: Restrict)
   items     PrescriptionItem[]
   sales     Sale[]
 
@@ -808,6 +813,7 @@ model Prescription {
 model PrescriptionItem {
   id             String  @id @default(uuid()) @db.Uuid
   prescriptionId String  @map("prescription_id") @db.Uuid
+  position       Int     @default(0) // Orden en que viene en la receta
   productId      String? @map("product_id") @db.Uuid
   medicationName String  @map("medication_name") @db.VarChar(200) // Texto tal como viene en la receta
   dose           String? @db.VarChar(100)

@@ -1,6 +1,6 @@
 import { cashChange, saleLineAmounts, saleTotals, type SalePaymentMethod } from '@farmacia/shared';
 import { clsx } from 'clsx';
-import { AlertTriangle, Banknote, Camera, CreditCard, Landmark, Minus, Plus, Printer, Receipt, Search, ShoppingCart, Split, Trash2 } from 'lucide-react';
+import { Banknote, Camera, CreditCard, Landmark, Minus, Plus, Printer, Receipt, Search, ShoppingCart, Split, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { findProductByBarcode, useCatalogDefaults, useProducts, type Product } from '../../api/catalog';
 import { api, ApiError } from '../../api/client';
@@ -10,13 +10,15 @@ import { Alert } from '../../components/ui/Alert';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Checkbox, TextField } from '../../components/ui/FormField';
+import { TextField } from '../../components/ui/FormField';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
 import { formatMoney } from '../../lib/format';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
+import { useToday } from '../../lib/useToday';
 import { productDetails } from '../products/product-display';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { EMPTY_RX, PrescriptionPanel, rxPayload, rxReady, type RxState } from './PrescriptionPanel';
 import { PrintableTicket } from './Ticket';
 
 interface CartLine {
@@ -29,6 +31,8 @@ interface CartLine {
   quantity: number;
   discount: string;
   requiresPrescription: boolean;
+  /** Antibióticos y controlados: la receta se liga a la venta */
+  retains?: boolean;
   error?: string;
 }
 
@@ -57,6 +61,7 @@ function lineFrom(p: Product): CartLine {
     quantity: 1,
     discount: '',
     requiresPrescription: p.requiresPrescription || p.isControlled,
+    retains: p.isControlled,
   };
 }
 
@@ -81,7 +86,7 @@ export function PosPage() {
   const [cashReceived, setCashReceived] = useState('');
   const [cardAmount, setCardAmount] = useState('');
   const [reference, setReference] = useState('');
-  const [prescriptionChecked, setPrescriptionChecked] = useState(false);
+  const [rx, setRx] = useState<RxState>(EMPTY_RX);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [completed, setCompleted] = useState<Sale | null>(null);
@@ -105,7 +110,9 @@ export function PosPage() {
     () => saleTotals(cart.map((l) => ({ quantity: l.quantity, unitPrice: l.unitPrice, discount: toNumber(l.discount), taxRate: l.taxRate })), pricesIncludeTax),
     [cart, pricesIncludeTax],
   );
+  const needsRetention = cart.some((l) => l.retains);
   const needsPrescription = cart.some((l) => l.requiresPrescription);
+  const today = useToday();
 
   // Pagos según la forma elegida
   const received = toNumber(cashReceived);
@@ -114,7 +121,7 @@ export function PosPage() {
   const cashOk = payMode === 'CARD' || payMode === 'TRANSFER' || cashPart === 0 || received + 0.005 >= cashPart;
   const change = payMode === 'CASH' || payMode === 'MIXED' ? cashChange(received, cashPart) : 0;
   const lineErrors = cart.some((l) => toNumber(l.discount) > l.quantity * l.unitPrice);
-  const canCharge = cart.length > 0 && totals.total > 0 && cashOk && !lineErrors && (!needsPrescription || prescriptionChecked) && !createSale.isPending;
+  const canCharge = cart.length > 0 && totals.total > 0 && cashOk && !lineErrors && rxReady(rx, needsRetention, needsPrescription) && !createSale.isPending;
 
   const focusSearch = () => searchRef.current?.focus();
 
@@ -171,7 +178,7 @@ export function PosPage() {
     setCashReceived('');
     setCardAmount('');
     setReference('');
-    setPrescriptionChecked(false);
+    setRx(EMPTY_RX);
     setError(null);
     requestId.current = crypto.randomUUID();
   };
@@ -204,7 +211,7 @@ export function PosPage() {
         clientRequestId: requestId.current,
         items: cart.map((l) => ({ productId: l.productId, quantity: l.quantity, discount: toNumber(l.discount) })),
         payments,
-        prescriptionChecked,
+        ...rxPayload(rx, needsRetention, today),
         expectedTotal: totals.total,
       });
       resetSale();
@@ -467,14 +474,7 @@ export function PosPage() {
             </div>
           )}
 
-          {needsPrescription && (
-            <div className="rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
-              <p className="mb-2 flex items-center gap-2 text-sm font-medium text-amber-900">
-                <AlertTriangle className="size-4" /> Esta venta incluye productos con receta médica
-              </p>
-              <Checkbox label="Revisé la receta médica del paciente" checked={prescriptionChecked} onChange={(e) => setPrescriptionChecked(e.target.checked)} />
-            </div>
-          )}
+          <PrescriptionPanel value={rx} onChange={setRx} needsRetention={needsRetention} needsPrescription={needsPrescription} />
 
           {error && <Alert tone="error">{error}</Alert>}
 
