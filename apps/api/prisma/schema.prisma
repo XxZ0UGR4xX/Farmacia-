@@ -250,6 +250,7 @@ model User {
   salesCreated       Sale[]              @relation("SaleCreatedBy")
   salesCancelled     Sale[]              @relation("SaleCancelledBy")
   returns            Return[]
+  returnItemsReviewed ReturnItem[]       @relation("ReturnItemReviewedBy")
   prescriptions      Prescription[]
   notificationReads  NotificationRead[]
   auditLogs          AuditLog[]
@@ -629,6 +630,10 @@ model Sale {
   cancelledById  String?    @map("cancelled_by_id") @db.Uuid
   cancelledAt    DateTime?  @map("cancelled_at") @db.Timestamptz(3)
   cancelReason   String?    @map("cancel_reason") @db.VarChar(255)
+  /// Quien cobró confirmó haber revisado la receta de los productos que la requieren
+  prescriptionChecked Boolean @default(false) @map("prescription_checked")
+  /// Identificador que genera el punto de venta: un reintento no duplica el cobro
+  clientRequestId String?   @unique @map("client_request_id") @db.VarChar(64)
   createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -651,6 +656,7 @@ model Sale {
 model SaleItem {
   id            String  @id @default(uuid()) @db.Uuid
   saleId        String  @map("sale_id") @db.Uuid
+  position      Int     @default(0) // Orden en el ticket
   productId     String  @map("product_id") @db.Uuid
   quantity      Int // CHECK > 0
   unitPrice     Decimal @map("unit_price") @db.Decimal(12, 2)
@@ -734,13 +740,19 @@ model ReturnItem {
   batchId      String            @map("batch_id") @db.Uuid
   quantity     Int // CHECK > 0
   refundAmount Decimal           @map("refund_amount") @db.Decimal(12, 2)
+  /// QUARANTINE = pendiente de revisión; al revisarse pasa a RESTOCKED o DISCARDED
   disposition  ReturnDisposition
+  reviewedAt   DateTime?         @map("reviewed_at") @db.Timestamptz(3)
+  reviewedById String?           @map("reviewed_by_id") @db.Uuid
+  reviewNotes  String?           @map("review_notes") @db.VarChar(255)
 
   return   Return       @relation(fields: [returnId], references: [id], onDelete: Cascade)
-  saleItem SaleItem     @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
-  batch    ProductBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  saleItem   SaleItem     @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  batch      ProductBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  reviewedBy User?        @relation("ReturnItemReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict)
 
   @@index([returnId])
+  @@index([disposition, reviewedAt])
   @@index([saleItemId])
   @@map("return_items")
 }

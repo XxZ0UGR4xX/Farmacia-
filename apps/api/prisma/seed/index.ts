@@ -17,6 +17,7 @@ import { seedMainBranch, seedOwner, seedPermissions, seedRoles, seedSettings } f
 import { seedDemoCatalog } from './demo-catalog';
 import { seedDemoInventory } from './demo-inventory';
 import { seedDemoPurchases, seedDemoSuppliers } from './demo-purchases';
+import { seedDemoSales } from './demo-sales';
 import { DEMO_USERS, seedDemoUsers } from './demo';
 
 config({ path: path.resolve(import.meta.dirname, '../../../../.env'), quiet: true });
@@ -104,6 +105,14 @@ async function seedDemo(branchId: string) {
     const warehouse = await prisma.user.findUnique({ where: { email: 'almacen@farmacia.local' } });
     const purchases = await seedDemoPurchases(prisma, branchId, supplierIds, warehouse?.id ?? owner.id);
     console.log(`   🚚 Compras: ${supplierIds.length} proveedores, ${purchases.purchases} compra(s) nueva(s)`);
+
+    // Ventas a nombre del propietario, la cajera y el farmacéutico de demostración
+    const sellers = await prisma.user.findMany({
+      where: { email: { in: ['caja@farmacia.local', 'farmaceutico@farmacia.local'] } },
+      select: { id: true },
+    });
+    const sales = await seedDemoSales(prisma, branchId, [owner.id, ...sellers.map((s) => s.id)]);
+    console.log(`   🧾 Ventas: ${sales.sales} venta(s) nueva(s) (con 2 cancelaciones y 2 devoluciones)`);
   }
 }
 

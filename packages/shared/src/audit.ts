@@ -45,6 +45,7 @@ export const AUDIT_ACTIONS = {
   SUPPLIER_DEACTIVATE: 'Desactivación de proveedor',
   SUPPLIER_ACTIVATE: 'Reactivación de proveedor',
   RETURN_CREATE: 'Devolución',
+  RETURN_REVIEW: 'Revisión de producto devuelto',
 
   PATIENT_VIEW: 'Consulta de expediente de paciente',
   SETTINGS_UPDATE: 'Cambio de configuración',

@@ -82,6 +82,7 @@ export async function seedDemoInventory(prisma: PrismaClient, branchId: string, 
           referenceType: 'DEMO_SEED',
           notes: 'Carga inicial de demostración',
           userId,
+          createdAt: batch.receivedAt,
         },
       });
     });

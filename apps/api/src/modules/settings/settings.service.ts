@@ -19,6 +19,16 @@ const schemas = {
     symbol: z.string().default('$'),
     locale: z.string().default('es-MX'),
   }),
+  'pharmacy.profile': z.object({
+    name: z.string().default('Mi Farmacia'),
+    phone: z.string().nullish(),
+    email: z.string().nullish(),
+    address: z.string().nullish(),
+  }),
+  'pharmacy.fiscal': z.object({
+    rfc: z.string().nullish(),
+    legalName: z.string().nullish(),
+  }),
   'alerts.expiry': z.object({
     criticalDays: z.number().int().min(1).default(30),
     warningDays: z.number().int().min(1).default(90),
