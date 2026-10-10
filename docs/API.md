@@ -114,11 +114,39 @@ Respuestas de error relevantes:
 Los movimientos no tienen rutas de edición ni de borrado, y la base de datos lo impide con un trigger.
 `unitCost` y `value` sólo se incluyen para quien puede ver costos.
 
+## Proveedores (`/suppliers`)
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /suppliers` | `suppliers.view` | Lista con `stats` (compras, total, saldo por pagar, última compra). Filtros: `q`, `status` (`active`, `inactive`, `all`) |
+| `GET /suppliers/options` | `purchases.create` | Proveedores activos para el formulario de compras |
+| `GET /suppliers/:id` | `suppliers.view` | Detalle con `stats` |
+| `POST /suppliers` | `suppliers.manage` | Alta. `tradeName` y `rfc` únicos (409) |
+| `PATCH /suppliers/:id` | `suppliers.manage` | Edición parcial |
+| `PATCH /suppliers/:id/status` | `suppliers.manage` | `{ isActive }`: desactivar o reactivar |
+
+## Compras (`/purchases`)
+
+Quien ve compras ve sus importes (es la factura con la que trabaja). Todos los importes los calcula el servidor.
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /purchases` | `purchases.view` | Lista + `summary` (por recibir, saldo, vencidas, recibido en el mes). Filtros: `q` (folio `C-000012`, factura o proveedor), `supplierId`, `status`, `paymentStatus`, `overdue=true`, `from`, `to` |
+| `GET /purchases/:id` | `purchases.view` | Detalle con partidas, pagos y quién capturó y recibió |
+| `POST /purchases` | `purchases.create` | Alta: `supplierId`, `invoiceNumber?`, `purchaseDate`, `paymentMethod`, `paymentDueDate?`, `notes?`, `items[]` (`productId`, `lotNumber?`, `expiresAt?`, `quantity`, `unitCost`, `discount?`, `taxRate?`) y `receive` (requiere además `purchases.receive`) |
+| `PUT /purchases/:id` | `purchases.create` | Reemplaza un pedido pendiente sin pagos |
+| `POST /purchases/:id/receive` | `purchases.receive` | Ingresa la mercancía: crea o suma lotes (`PURCHASE_ENTRY`) y actualiza el último costo |
+| `POST /purchases/:id/payments` | `purchases.pay` | `{ amount, method, reference?, paidAt? }`; no excede el saldo |
+| `POST /purchases/:id/cancel` | `purchases.cancel` | `{ reason }`. Si estaba recibida, retira lo ingresado (422 si ya salieron unidades o si tiene pagos) |
+
+Errores por partida: `details[].path` como `items.1.expiresAt` y el mensaje empieza con "Partida 2:".
+
 ## Configuración
 
 | Método y ruta | Permiso | Descripción |
 |---|---|---|
 | `GET /settings/defaults` | `products.view` | IVA (`pricesIncludeTax`), margen y stock mínimo predeterminados, moneda |
+| `GET /settings/clock` | Sesión iniciada | `{ today, timeZone }`: la fecha de la farmacia, para que la interfaz no dependa del reloj del equipo |
 
 ## Sucursales
 

@@ -16,7 +16,9 @@ import { catalogRouter } from './modules/catalogs/catalogs.routes';
 import { inventoryRouter } from './modules/inventory/inventory.routes';
 import { UPLOADS_URL_PREFIX, uploadsRoot } from './modules/products/product-images';
 import { productsRouter } from './modules/products/products.routes';
+import { purchasesRouter } from './modules/purchases/purchases.routes';
 import { settingsRouter } from './modules/settings/settings.routes';
+import { suppliersRouter } from './modules/suppliers/suppliers.routes';
 import { permissionsRouter, rolesRouter } from './modules/roles/roles.routes';
 import { usersRouter } from './modules/users/users.routes';
 
@@ -87,6 +89,8 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/laboratories', catalogRouter('laboratory'));
   app.use('/api/v1/products', productsRouter());
   app.use('/api/v1/inventory', inventoryRouter());
+  app.use('/api/v1/suppliers', suppliersRouter());
+  app.use('/api/v1/purchases', purchasesRouter());
   app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);

@@ -9,13 +9,66 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 2 | Usuarios + roles + permisos (administración desde la UI) | ✅ Completa |
 | 3 | Productos + categorías + laboratorios | ✅ Completa |
 | 4 | Lotes + inventario + movimientos | ✅ Completa |
-| 5 | Proveedores + compras | ⏳ Siguiente |
-| 6 | Punto de venta + ventas + devoluciones | Pendiente |
+| 5 | Proveedores + compras | ✅ Completa |
+| 6 | Punto de venta + ventas + devoluciones | ⏳ Siguiente |
 | 7 | Caducidades + alertas + notificaciones | Pendiente |
 | 8 | Pacientes + recetas | Pendiente |
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | Pendiente |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
+
+## Fase 5: entregado
+
+**Proveedores** (`/compras/proveedores`)
+- Alta y edición con nombre comercial, razón social, RFC (validado y único), contacto, teléfono,
+  correo, días de crédito y condiciones de pago.
+- Lista con número de compras, fecha de la última y **saldo por pagar** de cada proveedor.
+- No se eliminan: se desactivan (su historial se conserva) y un proveedor desactivado no admite compras nuevas.
+
+**Compras** (`/compras/nueva`, `/compras/historial`)
+- Captura de la factura: proveedor, folio de factura, fecha, forma de pago y productos con lote,
+  caducidad, cantidad, costo unitario sin IVA y descuento. Subtotal, IVA y total se calculan en vivo
+  y **el servidor los recalcula** (los importes que manda el navegador se ignoran).
+- **Lector de código de barras:** al escanear se agrega el producto y el cursor pasa a su lote.
+- Avisos al capturar: lote que caduca en menos de 30 días y costo que iguala o supera el precio de venta.
+- **Dos formas de registrar:**
+  - *Guardar y recibir mercancía* (la factura llegó con la mercancía): ingresa los lotes al inventario.
+  - *Guardar como pendiente* (un pedido): el lote y la caducidad se capturan cuando llega.
+- **Recibir** usa el mismo núcleo de inventario de la Fase 4 (bloqueo por lote, movimiento
+  "Entrada por compra" ligado a la compra) y actualiza el **último costo** de cada producto.
+  Si una partida falla (por ejemplo, un lote que ya existe con otra caducidad), no se ingresa
+  nada y el error se marca en su renglón.
+- **Pagos:** de contado queda pagada al recibir; a crédito vence según los días del proveedor.
+  Pagos parciales con forma de pago y referencia, sin exceder el saldo. Compras vencidas resaltadas.
+- **Cancelar:** un pedido se cancela sin tocar el inventario; una compra recibida retira lo que
+  ingresó, sólo si esas unidades siguen en sus lotes. No se cancela una compra con pagos.
+- Historial con resumen (por recibir, saldo por pagar, vencidas, recibido en el mes), búsqueda por
+  folio, factura o proveedor y filtros por estado y pago. En Movimientos, cada entrada por compra
+  enlaza a su compra.
+
+**Reglas de seguridad e integridad**
+- Recibir, pagar y cancelar bloquean la compra (`FOR UPDATE`): dos recepciones simultáneas ingresan
+  la mercancía una sola vez. Se verificó: sin el bloqueo, la prueba falla.
+- En la base de datos: no se paga más que el total y una partida recibida siempre tiene lote y caducidad.
+- La factura no se puede registrar dos veces para el mismo proveedor.
+- Permisos separados: registrar compras, recibir mercancía, pagar a proveedores y cancelar. El
+  almacenista recibe pero no paga (la compra de contado queda "Por pagar" para quien administra).
+  El farmacéutico consulta; el cajero no ve compras.
+- Todo queda en auditoría: alta, edición, recepción (con los cambios de costo), pagos, cancelación
+  con su motivo y los cambios de proveedores.
+- **"Hoy" lo define el servidor** con la zona horaria de la farmacia (`GET /settings/clock`): un
+  equipo con la hora o la zona mal configurada no puede registrar fechas "futuras" ni rechazar las válidas.
+
+**Datos de demostración:** 10 proveedores ficticios (RFC con prefijo `DMO`) y 20 compras: recibidas de
+contado y a crédito, una vencida, una con pago parcial, pedidos pendientes y una cancelada.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 170 pruebas de API (16 nuevas, incluida la de concurrencia) y 53 de frontend (6 nuevas).
+- Navegador real: resumen y filtro de vencidas, compra con búsqueda y lector, aviso de caducidad
+  próxima, recepción con lotes en inventario, pedido pendiente completado y recibido, pago parcial,
+  cancelación, alta y desactivación de proveedor, almacenista sin pagos, farmacéutico en consulta,
+  cajero sin acceso y vista móvil. Sin errores en la consola.
 
 ## Fase 4: entregado
 

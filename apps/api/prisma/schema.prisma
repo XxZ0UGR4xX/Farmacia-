@@ -566,11 +566,13 @@ model Purchase {
 model PurchaseItem {
   id             String    @id @default(uuid()) @db.Uuid
   purchaseId     String    @map("purchase_id") @db.Uuid
+  position       Int       @default(0) // Orden de captura de la partida
   productId      String    @map("product_id") @db.Uuid
   batchId        String?   @map("batch_id") @db.Uuid // Se asigna al recibir
-  lotNumber      String    @map("lot_number") @db.VarChar(60)
+  // Lote y caducidad pueden faltar en un pedido; son obligatorios al recibir
+  lotNumber      String?   @map("lot_number") @db.VarChar(60)
   manufacturedAt DateTime? @map("manufactured_at") @db.Date
-  expiresAt      DateTime  @map("expires_at") @db.Date
+  expiresAt      DateTime? @map("expires_at") @db.Date
   quantity       Int // CHECK > 0
   unitCost       Decimal   @map("unit_cost") @db.Decimal(12, 4)
   discount       Decimal   @default(0) @db.Decimal(12, 2)

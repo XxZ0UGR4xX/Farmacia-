@@ -19,6 +19,10 @@ import { ProductFormPage } from './features/products/ProductFormPage';
 import { ProductsLayout } from './features/products/ProductsLayout';
 import { ProductsListPage } from './features/products/ProductsListPage';
 import { ProfilePage } from './features/profile/ProfilePage';
+import { PurchaseDetailPage } from './features/purchases/PurchaseDetailPage';
+import { PurchaseFormPage } from './features/purchases/PurchaseFormPage';
+import { PurchasesListPage } from './features/purchases/PurchasesListPage';
+import { SuppliersPage } from './features/purchases/SuppliersPage';
 import { RoleEditorPage } from './features/users/RoleEditorPage';
 import { RolesListPage } from './features/users/RolesListPage';
 import { UsersLayout } from './features/users/UsersLayout';
@@ -88,6 +92,42 @@ const implementedRoutes: RouteObject[] = [
       },
       { path: ':id', element: <ProductFormPage /> },
     ],
+  },
+  {
+    path: 'compras/nueva',
+    element: (
+      <RequirePermission permission="purchases.create">
+        <PurchaseFormPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'compras/historial',
+    element: (
+      <RequirePermission permission="purchases.view">
+        <Outlet />
+      </RequirePermission>
+    ),
+    children: [
+      { index: true, element: <PurchasesListPage /> },
+      { path: ':id', element: <PurchaseDetailPage /> },
+      {
+        path: ':id/editar',
+        element: (
+          <RequirePermission permission="purchases.create">
+            <PurchaseFormPage />
+          </RequirePermission>
+        ),
+      },
+    ],
+  },
+  {
+    path: 'compras/proveedores',
+    element: (
+      <RequirePermission permission="suppliers.view">
+        <SuppliersPage />
+      </RequirePermission>
+    ),
   },
   {
     path: 'usuarios',

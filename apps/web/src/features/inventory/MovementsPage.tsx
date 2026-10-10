@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router';
 import { useProduct } from '../../api/catalog';
 import { downloadFile } from '../../api/client';
 import { toQuery, useMovements } from '../../api/inventory';
+import { useAuth } from '../../auth/useAuth';
 import { Alert } from '../../components/ui/Alert';
 import { Button } from '../../components/ui/Button';
 import { Card, PageHeader } from '../../components/ui/Card';
@@ -19,6 +20,7 @@ import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import { MovementLabel, QuantityChange } from './inventory-display';
 
 export function MovementsPage() {
+  const { can } = useAuth();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
   const productId = params.get('productId') ?? undefined;
@@ -138,7 +140,13 @@ export function MovementsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <MovementLabel movement={m} />
-                      {m.notes && <p className="max-w-56 truncate text-xs text-slate-400" title={m.notes}>{m.notes}</p>}
+                      {m.referenceType === 'PURCHASE' && m.referenceId && can('purchases.view') ? (
+                        <Link to={`/compras/historial/${m.referenceId}`} className="block max-w-56 truncate text-xs text-brand-700 hover:underline" title={m.notes ?? undefined}>
+                          {m.notes ?? 'Ver compra'}
+                        </Link>
+                      ) : (
+                        m.notes && <p className="max-w-56 truncate text-xs text-slate-400" title={m.notes}>{m.notes}</p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-500">{m.quantityBefore}</td>
                     <td className="px-4 py-3 text-right">

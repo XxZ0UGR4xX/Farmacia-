@@ -16,6 +16,7 @@ import { PrismaClient } from '../../src/generated/prisma/client';
 import { seedMainBranch, seedOwner, seedPermissions, seedRoles, seedSettings } from './core';
 import { seedDemoCatalog } from './demo-catalog';
 import { seedDemoInventory } from './demo-inventory';
+import { seedDemoPurchases, seedDemoSuppliers } from './demo-purchases';
 import { DEMO_USERS, seedDemoUsers } from './demo';
 
 config({ path: path.resolve(import.meta.dirname, '../../../../.env'), quiet: true });
@@ -97,6 +98,12 @@ async function seedDemo(branchId: string) {
   if (owner) {
     const inventory = await seedDemoInventory(prisma, branchId, owner.id);
     console.log(`   📦 Inventario: ${inventory.batches} lote(s) nuevo(s) con su movimiento de carga inicial`);
+
+    const supplierIds = await seedDemoSuppliers(prisma);
+    // Las compras las captura el almacenista de demostración (o el propietario)
+    const warehouse = await prisma.user.findUnique({ where: { email: 'almacen@farmacia.local' } });
+    const purchases = await seedDemoPurchases(prisma, branchId, supplierIds, warehouse?.id ?? owner.id);
+    console.log(`   🚚 Compras: ${supplierIds.length} proveedores, ${purchases.purchases} compra(s) nueva(s)`);
   }
 }
 

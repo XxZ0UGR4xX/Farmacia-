@@ -1,7 +1,5 @@
 import { ADJUSTMENT_REASON_LABELS, REASONS_BY_DIRECTION, type AdjustmentReason } from '@farmacia/shared';
-import { Search } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import { useProducts, type Product } from '../../api/catalog';
 import { ApiError } from '../../api/client';
 import { useRegisterEntry } from '../../api/inventory';
 import { Alert } from '../../components/ui/Alert';
@@ -10,54 +8,14 @@ import { TextAreaField, TextField } from '../../components/ui/FormField';
 import { Modal } from '../../components/ui/Modal';
 import { SelectField } from '../../components/ui/SelectField';
 import { useToast } from '../../components/ui/Toast';
-import { todayInputValue } from '../../lib/format';
-import { useDebouncedValue } from '../../lib/useDebouncedValue';
-import { productDetails } from '../products/product-display';
+import { useToday } from '../../lib/useToday';
+import { ProductPicker } from '../products/ProductPicker';
 
 export interface EntryProduct {
   id: string;
   commercialName: string;
   concentration: string | null;
   purchasePrice?: number;
-}
-
-/** Buscador simple de productos para elegir a cuál se le registra la entrada. */
-function ProductPicker({ onSelect }: { onSelect: (p: Product) => void }) {
-  const [search, setSearch] = useState('');
-  const q = useDebouncedValue(search.trim(), 250);
-  const results = useProducts({ q, page: 1, pageSize: 8, status: 'ACTIVE' });
-  return (
-    <div>
-      <TextField
-        label="Producto"
-        placeholder="Busca por nombre o escanea el código"
-        icon={<Search className="size-4" />}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => {
-          // Con el lector: Enter elige el único resultado
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const only = results.data?.data.length === 1 ? results.data.data[0] : undefined;
-            if (only) onSelect(only);
-          }
-        }}
-      />
-      {q && (
-        <ul className="mt-2 max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
-          {results.data?.data.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">Sin resultados</li>}
-          {results.data?.data.map((p) => (
-            <li key={p.id}>
-              <button type="button" onClick={() => onSelect(p)} className="w-full px-3 py-2 text-left hover:bg-brand-50">
-                <span className="block text-sm font-medium text-slate-900">{p.commercialName}</span>
-                <span className="block text-xs text-slate-500">{productDetails(p)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 const EMPTY = { lotNumber: '', expiresAt: '', manufacturedAt: '', quantity: '', unitCost: '', type: 'INITIAL_STOCK', reason: '', notes: '' };
@@ -76,6 +34,7 @@ export function EntryDialog({
 }) {
   const toast = useToast();
   const register = useRegisterEntry();
+  const today = useToday();
   const [product, setProduct] = useState<EntryProduct | null>(initialProduct);
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,7 +56,7 @@ export function EntryDialog({
     if (!product) errs.productId = 'Selecciona un producto';
     if (!values.lotNumber.trim()) errs.lotNumber = 'El número de lote es obligatorio';
     if (!values.expiresAt) errs.expiresAt = 'La fecha de caducidad es obligatoria';
-    else if (values.expiresAt < todayInputValue()) errs.expiresAt = 'Este lote ya está caducado';
+    else if (values.expiresAt < today) errs.expiresAt = 'Este lote ya está caducado';
     const qty = Number(values.quantity);
     if (!Number.isInteger(qty) || qty <= 0) errs.quantity = 'Captura una cantidad entera mayor a cero';
     if (values.type === 'ADJUSTMENT_IN' && !values.reason) errs.reason = 'Indica el motivo';
@@ -198,7 +157,7 @@ export function EntryDialog({
           <TextField
             label="Fecha de caducidad"
             type="date"
-            min={todayInputValue()}
+            min={today}
             value={values.expiresAt}
             onChange={(e) => set('expiresAt')(e.target.value)}
             hint="Si el empaque sólo dice mes y año, usa el último día del mes."
