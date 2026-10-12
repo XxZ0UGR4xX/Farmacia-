@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, type ComponentType } from 'react';
 import { createBrowserRouter, Navigate, Outlet, type RouteObject } from 'react-router';
 import { PublicOnly, RequireAuth, RequirePermission } from './auth/guards';
 import { useAuth } from './auth/useAuth';
@@ -10,46 +10,48 @@ import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { ComingSoonPage } from './features/common/ComingSoonPage';
 import { ForbiddenPage } from './features/common/ForbiddenPage';
 import { NotFoundPage } from './features/common/NotFoundPage';
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { BatchesPage } from './features/inventory/BatchesPage';
-import { ExpirationsPage } from './features/inventory/ExpirationsPage';
-import { MovementsPage } from './features/inventory/MovementsPage';
-import { ProductInventoryPage } from './features/inventory/ProductInventoryPage';
-import { StockPage } from './features/inventory/StockPage';
-import { CatalogPage } from './features/products/CatalogPage';
-import { ProductFormPage } from './features/products/ProductFormPage';
-import { ProductsLayout } from './features/products/ProductsLayout';
-import { ProductsListPage } from './features/products/ProductsListPage';
-import { NotificationsPage } from './features/notifications/NotificationsPage';
-import { PatientDetailPage } from './features/patients/PatientDetailPage';
-import { PatientsPage } from './features/patients/PatientsPage';
-import { PrescriptionDetailPage } from './features/patients/PrescriptionDetailPage';
-import { PrescriptionsPage } from './features/patients/PrescriptionsPage';
-import { ProfilePage } from './features/profile/ProfilePage';
-import { PurchaseDetailPage } from './features/purchases/PurchaseDetailPage';
-import { PurchaseFormPage } from './features/purchases/PurchaseFormPage';
-import { PurchasesListPage } from './features/purchases/PurchasesListPage';
-import { SuppliersPage } from './features/purchases/SuppliersPage';
-import { PosPage } from './features/sales/PosPage';
-import { ReturnsPage } from './features/sales/ReturnsPage';
-import { SaleDetailPage } from './features/sales/SaleDetailPage';
-import { SalesHistoryPage } from './features/sales/SalesHistoryPage';
-import { RoleEditorPage } from './features/users/RoleEditorPage';
-import { RolesListPage } from './features/users/RolesListPage';
-import { UsersLayout } from './features/users/UsersLayout';
-import { UsersListPage } from './features/users/UsersListPage';
-import { Spinner } from './components/ui/Spinner';
 
-// Páginas pesadas (gráficas) se cargan sólo cuando se visitan
-const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
-
-function PageLoader() {
-  return (
-    <div className="flex justify-center py-16 text-brand-600">
-      <Spinner />
-    </div>
-  );
+/**
+ * Cada módulo se descarga la primera vez que se visita (división del código por ruta):
+ * la carga inicial sólo trae lo necesario para iniciar sesión y mostrar el menú.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- cada página declara sus propias props
+type AnyPage = ComponentType<any>;
+function page<M extends Record<K, AnyPage>, K extends keyof M>(loader: () => Promise<M>, name: K) {
+  return lazy<M[K]>(() => loader().then((m) => ({ default: m[name] })));
 }
+
+const DashboardPage = page(() => import('./features/dashboard/DashboardPage'), 'DashboardPage');
+const BatchesPage = page(() => import('./features/inventory/BatchesPage'), 'BatchesPage');
+const ExpirationsPage = page(() => import('./features/inventory/ExpirationsPage'), 'ExpirationsPage');
+const MovementsPage = page(() => import('./features/inventory/MovementsPage'), 'MovementsPage');
+const ProductInventoryPage = page(() => import('./features/inventory/ProductInventoryPage'), 'ProductInventoryPage');
+const StockPage = page(() => import('./features/inventory/StockPage'), 'StockPage');
+const CatalogPage = page(() => import('./features/products/CatalogPage'), 'CatalogPage');
+const ProductFormPage = page(() => import('./features/products/ProductFormPage'), 'ProductFormPage');
+const ProductsLayout = page(() => import('./features/products/ProductsLayout'), 'ProductsLayout');
+const ProductsListPage = page(() => import('./features/products/ProductsListPage'), 'ProductsListPage');
+const NotificationsPage = page(() => import('./features/notifications/NotificationsPage'), 'NotificationsPage');
+const PatientDetailPage = page(() => import('./features/patients/PatientDetailPage'), 'PatientDetailPage');
+const PatientsPage = page(() => import('./features/patients/PatientsPage'), 'PatientsPage');
+const PrescriptionDetailPage = page(() => import('./features/patients/PrescriptionDetailPage'), 'PrescriptionDetailPage');
+const PrescriptionsPage = page(() => import('./features/patients/PrescriptionsPage'), 'PrescriptionsPage');
+const ProfilePage = page(() => import('./features/profile/ProfilePage'), 'ProfilePage');
+const PurchaseDetailPage = page(() => import('./features/purchases/PurchaseDetailPage'), 'PurchaseDetailPage');
+const PurchaseFormPage = page(() => import('./features/purchases/PurchaseFormPage'), 'PurchaseFormPage');
+const PurchasesListPage = page(() => import('./features/purchases/PurchasesListPage'), 'PurchasesListPage');
+const SuppliersPage = page(() => import('./features/purchases/SuppliersPage'), 'SuppliersPage');
+const PosPage = page(() => import('./features/sales/PosPage'), 'PosPage');
+const ReturnsPage = page(() => import('./features/sales/ReturnsPage'), 'ReturnsPage');
+const SaleDetailPage = page(() => import('./features/sales/SaleDetailPage'), 'SaleDetailPage');
+const SalesHistoryPage = page(() => import('./features/sales/SalesHistoryPage'), 'SalesHistoryPage');
+const RoleEditorPage = page(() => import('./features/users/RoleEditorPage'), 'RoleEditorPage');
+const RolesListPage = page(() => import('./features/users/RolesListPage'), 'RolesListPage');
+const UsersLayout = page(() => import('./features/users/UsersLayout'), 'UsersLayout');
+const UsersListPage = page(() => import('./features/users/UsersListPage'), 'UsersListPage');
+const AuditPage = page(() => import('./features/audit/AuditPage'), 'AuditPage');
+const ReportsPage = page(() => import('./features/reports/ReportsPage'), 'ReportsPage');
+const SettingsPage = page(() => import('./features/settings/SettingsPage'), 'SettingsPage');
 
 /** Inicio: dashboard si hay permiso; si no, el primer módulo permitido (p.ej. punto de venta). */
 function HomeRoute() {
@@ -224,9 +226,23 @@ const implementedRoutes: RouteObject[] = [
     path: 'reportes',
     element: (
       <RequirePermission permission="reports.view">
-        <Suspense fallback={<PageLoader />}>
-          <ReportsPage />
-        </Suspense>
+        <ReportsPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'auditoria',
+    element: (
+      <RequirePermission permission="audit.view">
+        <AuditPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'configuracion',
+    element: (
+      <RequirePermission permission="settings.view">
+        <SettingsPage />
       </RequirePermission>
     ),
   },

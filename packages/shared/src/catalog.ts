@@ -74,14 +74,34 @@ export function computeMargin(
   };
 }
 
-/** Precio sugerido a partir del costo y un margen sobre el costo. */
+/** Cómo se expresa el margen predeterminado (lo decide el propietario en Configuración). */
+export const MARGIN_BASES = ['COST', 'PRICE'] as const;
+export type MarginBasis = (typeof MARGIN_BASES)[number];
+
+export const MARGIN_BASIS_LABELS: Record<MarginBasis, string> = {
+  COST: 'Sobre el costo',
+  PRICE: 'Sobre el precio de venta',
+};
+
+/** Sobre el precio de venta el margen no puede llegar a 100 % (el precio sería infinito). */
+export const MAX_PRICE_MARGIN = 90;
+
+/**
+ * Precio sugerido a partir del costo y el margen predeterminado.
+ * - Sobre el costo: precio = costo × (1 + margen). 30 % sobre $10 → $13.
+ * - Sobre el precio: precio = costo ÷ (1 − margen). 30 % sobre $10 → $14.29 (la utilidad es el 30 % del precio).
+ */
 export function suggestSalePrice(
   purchasePrice: number,
-  markupPercent: number,
+  marginPercent: number,
   taxRate: number,
   pricesIncludeTax = true,
+  basis: MarginBasis = 'COST',
 ): number {
-  const net = purchasePrice * (1 + markupPercent / 100);
+  const net =
+    basis === 'PRICE'
+      ? purchasePrice / (1 - Math.min(marginPercent, MAX_PRICE_MARGIN) / 100)
+      : purchasePrice * (1 + marginPercent / 100);
   const gross = pricesIncludeTax ? net * (1 + taxRate) : net;
   // Redondeo a 50 centavos hacia arriba: precios "de mostrador"
   return Math.ceil(gross * 2) / 2;

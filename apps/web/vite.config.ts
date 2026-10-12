@@ -13,7 +13,8 @@ export default defineConfig({
     port: 4173,
     proxy: { '/api': { target: 'http://localhost:4000', changeOrigin: false } },
   },
-  build: { sourcemap: true },
+  // Sin mapas de código en producción: no se publica el código fuente con sus comentarios
+  build: { sourcemap: false },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

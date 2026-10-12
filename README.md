@@ -6,10 +6,10 @@ compras, proveedores, punto de venta, pacientes, recetas, reportes y auditoría 
 Está pensado para el doctor propietario, que necesita saber de un vistazo cómo está su farmacia.
 La arquitectura admite desde el inicio más empleados, roles y **sucursales** sin reconstruir el sistema.
 
-> **Estado:** Fases 1 a 9 de 11 completas (arquitectura, base de datos, autenticación,
+> **Estado:** Fases 1 a 10 de 11 completas (arquitectura, base de datos, autenticación,
 > usuarios, roles, permisos, productos, catálogos, lotes, existencias, movimientos, proveedores,
 > compras, punto de venta, ventas, devoluciones, caducidades, alertas, pacientes, recetas,
-> dashboard y reportes con exportación a Excel, CSV y PDF).
+> dashboard, reportes con exportación a Excel, CSV y PDF, auditoría, configuración y sucursales).
 > Ver [docs/FASES.md](docs/FASES.md).
 
 ## Tecnología
@@ -38,6 +38,7 @@ Documentación técnica:
 - [Base de datos y modelo entidad-relación](docs/BASE_DE_DATOS.md)
 - [Plan por fases](docs/FASES.md)
 - [Referencia de la API](docs/API.md)
+- [Seguridad](docs/SEGURIDAD.md)
 
 ## Instalación para desarrollo
 
@@ -89,7 +90,7 @@ En desarrollo, sin SMTP configurado, el enlace de "Recuperar contraseña" aparec
 
 ```bash
 git pull
-npm install
+npm install         # también aplica las versiones corregidas de dependencias (overrides)
 npm run db:deploy   # aplica las migraciones nuevas
 npm run db:seed     # registra permisos nuevos (no modifica tus roles personalizados ni tus datos)
 ```

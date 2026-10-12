@@ -10,6 +10,7 @@ import { logger } from './lib/logger';
 import { prisma } from './lib/prisma';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler';
 import { createRateLimiters } from './middlewares/rate-limit';
+import { auditRouter } from './modules/audit/audit.routes';
 import { authRouter } from './modules/auth/auth.routes';
 import { branchesRouter } from './modules/branches/branches.routes';
 import { catalogRouter } from './modules/catalogs/catalogs.routes';
@@ -111,6 +112,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/patients', patientsRouter());
   app.use('/api/v1/prescriptions', prescriptionsRouter());
   app.use('/api/v1/reports', reportsRouter());
+  app.use('/api/v1/audit', auditRouter());
   app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);

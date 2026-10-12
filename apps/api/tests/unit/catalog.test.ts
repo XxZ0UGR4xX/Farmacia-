@@ -31,6 +31,15 @@ describe('suggestSalePrice', () => {
     expect(suggestSalePrice(18, 30, 0)).toBe(23.5);
     expect(suggestSalePrice(100, 30, 0.16)).toBe(151);
   });
+
+  it('con margen sobre el precio, la utilidad es ese porcentaje del precio sin IVA', () => {
+    // $10 de costo, 30 % sobre el precio → 10 ÷ 0.70 = 14.29 → 14.50
+    expect(suggestSalePrice(10, 30, 0, true, 'PRICE')).toBe(14.5);
+    const price = suggestSalePrice(100, 25, 0.16, true, 'PRICE');
+    expect(computeMargin(100, price, 0.16).marginPercent).toBeGreaterThanOrEqual(25);
+    // Nunca se divide entre cero: el margen sobre precio se limita a 90 %
+    expect(Number.isFinite(suggestSalePrice(10, 100, 0, true, 'PRICE'))).toBe(true);
+  });
 });
 
 describe('validación de productos', () => {

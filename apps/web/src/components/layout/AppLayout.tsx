@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { PageLoader } from '../ui/PageLoader';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
@@ -16,7 +17,10 @@ export function AppLayout() {
       <div className="lg:pl-64">
         <Topbar onOpenMenu={() => setMobileOpen(true)} />
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
+          {/* Los módulos se cargan bajo demanda: mientras llega el código se muestra un indicador */}
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

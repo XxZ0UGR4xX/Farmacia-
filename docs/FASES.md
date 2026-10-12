@@ -14,14 +14,14 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 7 | Caducidades + alertas + notificaciones | ✅ Completa |
 | 8 | Pacientes + recetas | ✅ Completa |
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | ✅ Completa |
-| 10 | Auditoría (UI) + configuración + seguridad + optimización | ⏳ Siguiente |
-| 11 | Pruebas + documentación + despliegue | Pendiente |
+| 10 | Auditoría (UI) + configuración + seguridad + optimización | ✅ Completa |
+| 11 | Pruebas + documentación + despliegue | ⏳ Siguiente |
 
 ## Decisiones del propietario
 
 | Tema | Decisión |
 |---|---|
-| Margen (sobre costo o sobre precio) | Lo define el propietario en Configuración (Fase 10) |
+| Margen (sobre costo o sobre precio) | Lo define el propietario en **Configuración → Precios y margen** (base y porcentaje) |
 | IVA de los datos de demostración | Se conserva |
 | Precio del farmacéutico | Lo pone al dar de alta el producto; cambiarlo después requiere `products.change_price` |
 | Cajero y pacientes | Consulta y registra pacientes (para la receta en mostrador) |
@@ -31,6 +31,57 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 
 Los cambios de permisos por omisión se aplican una sola vez en cada instalación al correr
 `npm run db:seed` (si después se quitan desde Roles, no se vuelven a agregar).
+
+## Fase 10: entregado
+
+**Auditoría** (`/auditoria`, permiso `audit.view`)
+- Bitácora de todo lo que hace cada usuario: fecha y hora, usuario, sucursal, acción, registro
+  afectado, IP y equipo (navegador y sistema). Sólo lectura: la base de datos impide modificarla.
+- Filtros por fechas, usuario, área (seguridad, usuarios, productos, inventario, compras, ventas,
+  pacientes, configuración) y acción; atajo **"Sólo eventos de seguridad"** (intentos fallidos,
+  bloqueos, accesos negados, tokens reutilizados).
+- Detalle de cada evento con nombres legibles y, en cambios de configuración, el **antes y después**.
+- Exportación a CSV (hasta 10,000 registros), que también queda registrada.
+
+**Configuración** (`/configuracion`: consulta con `settings.view`, cambios con `settings.manage`)
+- **Datos de la farmacia y fiscales** (nombre, teléfono, correo, dirección, RFC, razón social,
+  régimen, domicilio fiscal, CP): salen en el encabezado del ticket.
+- **Precios y margen** — decisión del propietario: el margen predeterminado se calcula **sobre el
+  costo** (precio = costo × (1 + margen)) o **sobre el precio de venta** (precio = costo ÷ (1 −
+  margen), máximo 90 %). Con un ejemplo en vivo. El alta de productos sugiere el precio con esa
+  regla y los reportes destacan el margen en esa base.
+- **Impuestos:** IVA predeterminado de productos nuevos (0, 8 o 16 %) y si los precios incluyen IVA
+  (con advertencia, porque cambia cómo se leen todos los precios; las ventas registradas no cambian).
+- **Alertas de caducidad:** días críticos y de aviso (las alertas de todas las sucursales se
+  recalculan al guardar).
+- **Sucursales:** alta, edición y desactivación (no se puede desactivar la última activa ni la
+  predeterminada de usuarios activos; el historial se conserva).
+- Cada guardado queda en auditoría con cada campo antes y después; guardar sin cambios no genera
+  registro.
+
+**Seguridad** (detalle en [SEGURIDAD.md](SEGURIDAD.md))
+- Prueba automática que lee **todas** las rutas del código (100) y verifica que ninguna responda
+  sin sesión; también que un token falso no entre y que los errores no muestren detalles internos.
+- Dependencias de producción con **0 vulnerabilidades** (`npm audit --omit=dev`): versiones
+  corregidas de `mysql2` y `deepmerge-ts` (traídas por el CLI de Prisma) fijadas con `overrides`.
+- Producción sin mapas de código fuente y nginx rechaza archivos `.map`.
+
+**Optimización**
+- Cada módulo de la interfaz se descarga la primera vez que se visita: la carga inicial bajó de
+  780 KB a 387 KB (120 KB comprimido). El lector de códigos de barras (477 KB) sólo se descarga al
+  usar la cámara.
+- Las pestañas de Productos y Usuarios siguen visibles mientras carga la subpágina.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 235 pruebas de API (13 nuevas: configuración y validaciones, margen sobre precio,
+  sucursales, filtros y exportación de la auditoría, inmutabilidad de la bitácora y la revisión
+  automática de rutas) y 80 de frontend (3 nuevas).
+- Navegador real: el propietario cambia el nombre (el ticket lo usa) y elige margen sobre el precio;
+  el farmacéutico ve el precio sugerido con esa regla ($100 → $143) y no entra a configuración ni a
+  auditoría; el intento de inicio de sesión fallido aparece entre los eventos de seguridad;
+  bitácora exportada; la administradora crea una sucursal; todos los módulos cargan bajo demanda;
+  vista móvil sin desplazamiento horizontal.
 
 ## Fase 9: entregado
 

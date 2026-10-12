@@ -104,7 +104,8 @@ export async function salesReport(auth: AuthContext, branchId: string, range: Ra
   const { start, end } = window(range);
   const inRange = Prisma.sql`s.branch_id = ${branchId}::uuid AND s.created_at >= ${start} AND s.created_at < ${end}`;
 
-  const [sales, returns, cancelled, byMethod, refundsByMethod, byCashier, byCategory, byHour] = await Promise.all([
+  const [pricing, sales, returns, cancelled, byMethod, refundsByMethod, byCashier, byCategory, byHour] = await Promise.all([
+    getSetting('inventory.defaults'),
     salesBuckets(branchId, start, end, range.groupBy),
     returnsBuckets(branchId, start, end, range.groupBy),
     prisma.sale.aggregate({
@@ -198,9 +199,10 @@ export async function salesReport(auth: AuthContext, branchId: string, range: Ra
             revenue: r2(revenue),
             cost: r2(cost),
             profit: r2(profit),
-            // Margen sobre la venta (sin IVA) y sobre el costo
+            // Margen sobre la venta (sin IVA) y sobre el costo; el propietario elige cuál se destaca
             margin: ratio(profit, revenue),
             markup: ratio(profit, cost),
+            marginBasis: pricing.marginBasis,
           }
         : {}),
     },

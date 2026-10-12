@@ -49,7 +49,11 @@ export function SalesReportView({ report }: { report: SalesReport }) {
             icon={TrendingUp}
             tone="good"
             testId="report-profit"
-            hint={`Margen ${ratio(totals.margin)} sobre venta · ${ratio(totals.markup)} sobre costo`}
+            hint={
+              totals.marginBasis === 'COST'
+                ? `Margen ${ratio(totals.markup)} sobre costo · ${ratio(totals.margin)} sobre venta`
+                : `Margen ${ratio(totals.margin)} sobre venta · ${ratio(totals.markup)} sobre costo`
+            }
           />
         ) : (
           <StatTile label="Descuentos" value={formatMoney(totals.discount)} icon={Percent} hint="Otorgados en el periodo" />

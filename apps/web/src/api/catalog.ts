@@ -1,4 +1,4 @@
-import type { Presentation, ProductStatus } from '@farmacia/shared';
+import type { MarginBasis, Presentation, ProductStatus } from '@farmacia/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PageMeta } from '../components/ui/Pagination';
 import { api } from './client';
@@ -92,7 +92,7 @@ export interface CatalogItem {
 
 export interface CatalogDefaults {
   taxes: { defaultRate: number; pricesIncludeTax: boolean };
-  inventory: { defaultMarginPercent: number; defaultMinStock: number };
+  inventory: { defaultMarginPercent: number; marginBasis: MarginBasis; defaultMinStock: number };
   currency: { code: string; symbol: string; locale: string };
 }
 

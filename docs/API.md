@@ -214,12 +214,27 @@ sólo aparecen con `reports.financial`.
 |---|---|---|
 | `GET /settings/defaults` | `products.view` | IVA (`pricesIncludeTax`), margen y stock mínimo predeterminados, moneda |
 | `GET /settings/clock` | Sesión iniciada | `{ today, timeZone }`: la fecha de la farmacia, para que la interfaz no dependa del reloj del equipo |
+| `GET /settings` | `settings.view` | Secciones editables con su valor, fecha y autor del último cambio: `pharmacy.profile`, `pharmacy.fiscal`, `pharmacy.taxes`, `inventory.defaults` (margen, `marginBasis`: `COST` o `PRICE`, stock mínimo) y `alerts.expiry` |
+| `PUT /settings/:key` | `settings.manage` | Reemplaza una sección (validada). Audita `SETTINGS_UPDATE` con cada campo antes y después; si no hay cambios no registra nada |
 
 ## Sucursales
 
 | Método y ruta | Permiso | Descripción |
 |---|---|---|
-| `GET /branches` | `users.view` | Sucursales activas |
+| `GET /branches` | `users.view` | Sucursales activas (para asignarlas a usuarios) |
+| `GET /settings/branches` | `settings.view` | Todas las sucursales con su número de usuarios |
+| `POST /settings/branches` | `settings.manage` | `{ code, name, address?, phone?, email? }`. Quien la crea queda asignado. Audita `BRANCH_CREATE` |
+| `PATCH /settings/branches/:id` | `settings.manage` | Edición parcial e `isActive`. No se desactiva la última sucursal activa ni la predeterminada de usuarios activos. Audita `BRANCH_UPDATE` |
+
+## Auditoría (`/audit`)
+
+Sólo lectura (la base de datos impide modificar o borrar registros). Permiso `audit.view`.
+
+| Método y ruta | Descripción |
+|---|---|
+| `GET /audit` | Filtros: `from`, `to`, `userId`, `group` (`security`, `users`, `products`, `inventory`, `purchases`, `sales`, `patients`, `admin`), `action`, `entityType`, `entityId`, `security=true`. Incluye `summary: { total, security }` |
+| `GET /audit/users` | Usuarios que aparecen en la bitácora (para el filtro) |
+| `GET /audit/export` | Los mismos filtros en CSV (hasta 10,000 registros). Audita `AUDIT_EXPORT` |
 
 ## Sistema
 

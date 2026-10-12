@@ -20,5 +20,9 @@
     "db:seed": "npm run db:seed -w @farmacia/api",
     "db:seed:demo": "npm run db:seed:demo -w @farmacia/api",
     "db:reset": "npm run db:reset -w @farmacia/api"
+  },
+  "overrides": {
+    "mysql2": "3.24.4",
+    "deepmerge-ts": "8.0.2"
   }
 }

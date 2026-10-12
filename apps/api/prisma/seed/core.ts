@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: Record<string, { value: unknown; description: str
     description: 'Impuestos (IVA). Medicamentos suelen ser tasa 0 %.',
   },
   'inventory.defaults': {
-    value: { defaultMarginPercent: 30, defaultMinStock: 5 },
+    value: { defaultMarginPercent: 30, marginBasis: 'COST', defaultMinStock: 5 },
     description: 'Margen y stock mínimo predeterminados',
   },
   'alerts.expiry': {

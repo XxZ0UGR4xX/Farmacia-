@@ -213,6 +213,11 @@ export function markAlertsStale(branchId: string) {
   lastRefresh.delete(branchId);
 }
 
+/** Tras cambiar umbrales (p. ej. días de caducidad): todas las sucursales se revisan de nuevo. */
+export function markAllAlertsStale() {
+  lastRefresh.clear();
+}
+
 /** Refresca si la última revisión de la sucursal tiene más de un minuto. */
 export async function ensureFreshAlerts(branchId: string) {
   const last = lastRefresh.get(branchId) ?? 0;

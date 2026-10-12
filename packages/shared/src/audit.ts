@@ -54,7 +54,39 @@ export const AUDIT_ACTIONS = {
   PRESCRIPTION_VIEW: 'Consulta de receta',
   PRESCRIPTION_VOID: 'Anulación de receta',
   REPORT_EXPORT: 'Exportación de reporte',
+  AUDIT_EXPORT: 'Exportación de la bitácora de auditoría',
   SETTINGS_UPDATE: 'Cambio de configuración',
+  BRANCH_CREATE: 'Alta de sucursal',
+  BRANCH_UPDATE: 'Edición de sucursal',
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
+
+/** Grupos para filtrar la bitácora (cada acción pertenece a uno). */
+export const AUDIT_GROUPS = {
+  security: 'Seguridad y sesiones',
+  users: 'Usuarios y roles',
+  products: 'Productos y precios',
+  inventory: 'Inventario',
+  purchases: 'Compras y proveedores',
+  sales: 'Ventas y devoluciones',
+  patients: 'Pacientes y recetas',
+  admin: 'Configuración y reportes',
+} as const;
+export type AuditGroup = keyof typeof AUDIT_GROUPS;
+
+export function auditGroup(action: string): AuditGroup {
+  if (action.startsWith('AUTH_') || action === 'ACCESS_DENIED') return 'security';
+  if (action.startsWith('USER_') || action.startsWith('ROLE_')) return 'users';
+  if (action.startsWith('PRODUCT_') || action.startsWith('CATALOG_')) return 'products';
+  if (action.startsWith('INVENTORY_')) return 'inventory';
+  if (action.startsWith('PURCHASE_') || action.startsWith('SUPPLIER_')) return 'purchases';
+  if (action.startsWith('SALE_') || action.startsWith('RETURN_')) return 'sales';
+  if (action.startsWith('PATIENT_') || action.startsWith('PRESCRIPTION_')) return 'patients';
+  return 'admin';
+}
+
+/** Eventos que merecen revisión (intentos fallidos, bloqueos, accesos negados, tokens reutilizados). */
+export const SECURITY_ALERT_ACTIONS: readonly AuditAction[] = ['AUTH_LOGIN_FAILED', 'AUTH_ACCOUNT_LOCKED', 'AUTH_TOKEN_REUSE', 'ACCESS_DENIED'];
+
+export const isAuditAction = (value: string): value is AuditAction => Object.hasOwn(AUDIT_ACTIONS, value);

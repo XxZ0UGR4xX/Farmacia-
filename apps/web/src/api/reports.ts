@@ -69,6 +69,7 @@ export interface SalesReport {
     profit?: number;
     margin?: number | null;
     markup?: number | null;
+    marginBasis?: 'COST' | 'PRICE';
   };
   series: { period: string; count: number; units: number; gross: number; refunds: number; net: number; profit?: number }[];
   byMethod: { method: string; count: number; amount: number; refunds: number; net: number }[];

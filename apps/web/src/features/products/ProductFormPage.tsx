@@ -10,7 +10,7 @@ import {
 } from '@farmacia/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, ArrowLeft, ImagePlus, Lock, Save, Sparkles, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { z } from 'zod';
@@ -188,9 +188,11 @@ export function ProductFormPage() {
   const price = sale ? toNumber(sale) : NaN;
   const margin = Number.isFinite(price) && price > 0 ? computeMargin(cost, price, Number(tax), pricesIncludeTax) : null;
 
+  // Margen predeterminado: el propietario elige si es sobre el costo o sobre el precio de venta
+  const defaultMargin = defaults.data?.inventory.defaultMarginPercent ?? 30;
+  const marginBasis = defaults.data?.inventory.marginBasis ?? 'COST';
   const suggest = () => {
-    const markup = defaults.data?.inventory.defaultMarginPercent ?? 30;
-    setValue('salePrice', suggestSalePrice(cost, markup, Number(tax), pricesIncludeTax).toFixed(2), { shouldDirty: true });
+    setValue('salePrice', suggestSalePrice(cost, defaultMargin, Number(tax), pricesIncludeTax, marginBasis).toFixed(2), { shouldDirty: true });
   };
 
   const onSubmit = handleSubmit(async (v) => {
@@ -446,10 +448,15 @@ export function ProductFormPage() {
                     <dd className={`text-right font-semibold tabular-nums ${margin.profit < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                       {formatMoney(margin.profit)}
                     </dd>
-                    <dt className="text-slate-500">Margen sobre costo</dt>
-                    <dd className="text-right tabular-nums text-slate-700">{formatPercent(margin.markupPercent)}</dd>
-                    <dt className="text-slate-500">Margen sobre venta</dt>
-                    <dd className="text-right tabular-nums text-slate-700">{formatPercent(margin.marginPercent)}</dd>
+                    {(marginBasis === 'PRICE'
+                      ? ([['Margen sobre venta', margin.marginPercent], ['Margen sobre costo', margin.markupPercent]] as const)
+                      : ([['Margen sobre costo', margin.markupPercent], ['Margen sobre venta', margin.marginPercent]] as const)
+                    ).map(([label, value], i) => (
+                      <Fragment key={label}>
+                        <dt className="text-slate-500">{label}</dt>
+                        <dd className={`text-right tabular-nums ${i === 0 ? 'font-medium text-slate-900' : 'text-slate-700'}`}>{formatPercent(value)}</dd>
+                      </Fragment>
+                    ))}
                   </dl>
                 ) : (
                   <p className="text-slate-500">Captura el precio para ver la utilidad.</p>
@@ -461,7 +468,7 @@ export function ProductFormPage() {
                 )}
                 {canChangePrice && cost > 0 && (
                   <Button type="button" variant="secondary" size="sm" className="mt-3 w-full" onClick={suggest} icon={<Sparkles className="size-4" />}>
-                    Sugerir precio ({defaults.data?.inventory.defaultMarginPercent ?? 30} % sobre costo)
+                    Sugerir precio ({defaultMargin} % sobre {marginBasis === 'PRICE' ? 'precio de venta' : 'costo'})
                   </Button>
                 )}
               </div>
