@@ -186,3 +186,21 @@ export function useVoidPrescription() {
     onSuccess: invalidate,
   });
 }
+
+export interface DispensablePrescription {
+  id: string;
+  folio: string;
+  doctorName: string;
+  issuedAt: string;
+  medications: string[];
+}
+
+/** Recetas sin surtir del paciente (punto de venta: datos mínimos). */
+export function useDispensablePrescriptions(patientId: string | undefined) {
+  return useQuery({
+    queryKey: ['prescriptions', 'dispensable', patientId ?? ''],
+    queryFn: ({ signal }) =>
+      api.get<{ items: DispensablePrescription[] }>(`/patients/${patientId}/dispensable-prescriptions`, { signal }).then((r) => r.items),
+    enabled: Boolean(patientId),
+  });
+}

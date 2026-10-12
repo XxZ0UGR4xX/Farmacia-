@@ -21,6 +21,8 @@ export async function seedDemoUsers(prisma: PrismaClient, passwordHash: string, 
         firstName: demo.firstName,
         lastName: demo.lastName,
         roleId: role.id,
+        // Decisión del propietario: también los usuarios de demostración eligen su contraseña al entrar
+        mustChangePassword: true,
         defaultBranchId: branchId,
         branches: { create: { branchId } },
       },

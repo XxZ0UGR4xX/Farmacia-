@@ -178,6 +178,7 @@ Información sensible: cada consulta de un expediente o receta queda en auditor�
 | `GET /patients` | `patients.view` | Lista con datos mínimos (teléfono enmascarado, edad, recetas, compras, última visita). Filtro: `q` |
 | `GET /patients/search` | `patients.view` | `q` (mínimo 2 caracteres): hasta 10 resultados para selectores |
 | `GET /patients/:id` | `patients.view` | Expediente completo; recetas con `prescriptions.view` y compras con `sales.view`. Audita `PATIENT_VIEW` |
+| `GET /patients/:id/dispensable-prescriptions` | `sales.create` | Recetas sin surtir del paciente para el punto de venta (folio, fecha, médico, medicamentos) |
 | `POST /patients` | `patients.manage` | Alta. 409 si ya existe con el mismo nombre y fecha de nacimiento |
 | `PATCH /patients/:id` | `patients.manage` | Edición parcial (la auditoría guarda sólo los nombres de los campos) |
 | `GET /prescriptions` | `prescriptions.view` | Filtros: `q` (folio `R-000012`, paciente, médico, cédula), `patientId`, `from`, `to`, `includeVoided` |
@@ -186,8 +187,8 @@ Información sensible: cada consulta de un expediente o receta queda en auditor�
 | `POST /prescriptions/:id/void` | `prescriptions.void` | `{ reason }`. 422 si ya surtió una venta. No existe edición ni borrado |
 
 En `POST /sales`, los productos que retienen receta requieren `prescriptionId` (una receta sin surtir)
-o `prescription: { doctorName, doctorLicense?, issuedAt }` junto con `patientId` (requiere
-`prescriptions.manage`). La respuesta de la venta incluye `patient` y `prescription` sólo para
+o `prescription: { doctorName, doctorLicense?, issuedAt }` junto con `patientId` (basta con
+`sales.create`: registrar la receta retenida es parte de surtir). La respuesta de la venta incluye `patient` y `prescription` sólo para
 quien tiene `patients.view`.
 
 ## Configuración

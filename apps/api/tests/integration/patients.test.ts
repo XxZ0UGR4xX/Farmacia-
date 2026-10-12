@@ -107,8 +107,8 @@ describe('Pacientes', () => {
     expect(JSON.stringify(update?.metadata)).not.toContain('9999');
   });
 
-  it('permisos: el cajero consulta pero no da de alta; sin permiso no hay acceso', async () => {
-    await request(app).post('/api/v1/patients').set(auth(cashier.token)).send({ firstName: 'A', lastName: 'B' }).expect(403);
+  it('permisos: la cajera registra pacientes (para recetas en mostrador); sin permiso no hay acceso', async () => {
+    await request(app).post('/api/v1/patients').set(auth(cashier.token)).send({ firstName: `Mostrador ${tag()}`, lastName: 'Ficticio' }).expect(201);
     const warehouse = await actorWithRole(app, 'WAREHOUSE');
     await request(app).get('/api/v1/patients').set(auth(warehouse.token)).expect(403);
     await request(app).get('/api/v1/patients/search').query({ q: 'pa' }).set(auth(warehouse.token)).expect(403);
@@ -227,7 +227,7 @@ describe('Venta de productos que retienen receta', () => {
     expect((await sell(cashier.token, { items, payments: cash, prescriptionId: rx.id })).status).toBe(201);
   });
 
-  it('el cajero no registra recetas nuevas y un rol sin pacientes no ve al paciente de la venta', async () => {
+  it('la cajera vende el antibiótico registrando la receta, ve sólo las recetas sin surtir, y un rol sin pacientes no ve al paciente', async () => {
     const product = await controlledProduct();
     const p = await newPatient();
     const res = await sell(cashier.token, {
@@ -236,7 +236,17 @@ describe('Venta de productos que retienen receta', () => {
       patientId: p.id,
       prescription: { doctorName: 'Dr. Ficticio Dos', issuedAt: todayISO() },
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(201);
+    expect(res.body.sale.prescription.folio).toMatch(/^R-/);
+
+    // Recetas para surtir: sólo las vigentes y sin surtir, con datos mínimos
+    const pending = (await prescribe(doctor.token, p.id)).body.prescription;
+    const list = await request(app).get(`/api/v1/patients/${p.id}/dispensable-prescriptions`).set(auth(cashier.token));
+    expect(list.status).toBe(200);
+    expect(list.body.items.map((x: { id: string }) => x.id)).toEqual([pending.id]);
+    expect(list.body.items[0]).not.toHaveProperty('items');
+    // Pero el detalle de la receta (dosis, indicaciones) sigue reservado
+    await request(app).get(`/api/v1/prescriptions/${pending.id}`).set(auth(cashier.token)).expect(403);
 
     const rx = (await prescribe(doctor.token, p.id)).body.prescription;
     const sale = (await sell(pharmacist.token, { items: [{ productId: product.id, quantity: 1 }], payments: cash, prescriptionId: rx.id })).body.sale;

@@ -2,6 +2,7 @@ import {
   ALL_PERMISSIONS,
   OWNER_ROLE_CODE,
   PERMISSIONS,
+  ROLE_DEFAULT_UPDATES,
   SYSTEM_ROLES,
   type SystemRoleCode,
 } from '@farmacia/shared';
@@ -80,6 +81,34 @@ export async function seedRoles(prisma: PrismaClient, newPermissions: readonly s
       await prisma.rolePermission.createMany({ data, skipDuplicates: true });
     }
   }
+  await applyRoleDefaultUpdates(prisma, idByKey);
+}
+
+const APPLIED_UPDATES_KEY = 'system.appliedRoleUpdates';
+
+/** Aplica, una sola vez, los cambios de permisos por omisión de versiones nuevas. */
+async function applyRoleDefaultUpdates(prisma: PrismaClient, idByKey: Map<string, string>): Promise<void> {
+  const setting = await prisma.setting.findUnique({ where: { key: APPLIED_UPDATES_KEY } });
+  const applied = new Set(Array.isArray(setting?.value) ? (setting.value as string[]) : []);
+  const pending = ROLE_DEFAULT_UPDATES.filter((u) => !applied.has(u.id));
+  if (pending.length === 0) return;
+  for (const update of pending) {
+    for (const [code, keys] of Object.entries(update.grants)) {
+      const role = await prisma.role.findUnique({ where: { code } });
+      if (!role) continue;
+      const data = (keys ?? [])
+        .map((key) => idByKey.get(key))
+        .filter((id): id is string => Boolean(id))
+        .map((permissionId) => ({ roleId: role.id, permissionId }));
+      await prisma.rolePermission.createMany({ data, skipDuplicates: true });
+    }
+    applied.add(update.id);
+  }
+  await prisma.setting.upsert({
+    where: { key: APPLIED_UPDATES_KEY },
+    create: { key: APPLIED_UPDATES_KEY, value: [...applied], description: 'Actualizaciones de permisos por omisión ya aplicadas' },
+    update: { value: [...applied] },
+  });
 }
 
 export async function seedMainBranch(prisma: PrismaClient) {

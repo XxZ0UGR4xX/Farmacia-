@@ -191,25 +191,26 @@ describe('PosPage', () => {
 describe('PosPage: productos que retienen receta', () => {
   const antibiotic = product({ id: 'p9', commercialName: 'Amoxicilina 500 mg', requiresPrescription: true, isControlled: true });
 
-  it('la cajera no puede cobrarlos: debe completarlos quien registra recetas', async () => {
+  it('sin paciente y receta no se puede cobrar, también para la cajera', async () => {
     mockApi({ 'GET /settings/defaults': defaults, 'GET /products/barcode/333333': { product: antibiotic } });
     renderApp(<PosPage />, { user: sessionUser('CASHIER') });
     await userEvent.type(screen.getByLabelText('Producto'), '333333{Enter}');
-    await screen.findByTestId('cart-line');
-    expect(screen.getByText(/Pide a quien registra recetas/)).toBeInTheDocument();
+    expect(await screen.findByTestId('rx-panel')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', { name: /Tarjeta/ }));
     expect(screen.getByRole('button', { name: /^Cobrar/ })).toBeDisabled();
+    // La cajera puede dar de alta al paciente desde aquí
+    expect(screen.getByRole('button', { name: 'Nuevo paciente' })).toBeInTheDocument();
   });
 
-  it('el farmacéutico elige al paciente y registra la receta al cobrar', async () => {
+  it('la cajera elige al paciente y registra la receta al cobrar', async () => {
     const fetchMock = mockApi({
       'GET /settings/defaults': defaults,
       'GET /products/barcode/333333': { product: antibiotic },
       'GET /patients/search': { items: [{ id: 'pa1', fullName: 'María Fernanda Gómez Ficticio', age: 41, phone: '•••• 1000' }] },
-      'GET /prescriptions': { data: [], meta: { page: 1, pageSize: 5, total: 0, totalPages: 1 } },
+      'GET /patients/pa1/dispensable-prescriptions': { items: [] },
       'POST /sales': { sale: sale() },
     });
-    renderApp(<PosPage />, { user: sessionUser('PHARMACIST') });
+    renderApp(<PosPage />, { user: sessionUser('CASHIER') });
     await userEvent.type(screen.getByLabelText('Producto'), '333333{Enter}');
     const panel = await screen.findByTestId('rx-panel');
     await userEvent.click(screen.getByRole('radio', { name: /Tarjeta/ }));

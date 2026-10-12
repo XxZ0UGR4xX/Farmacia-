@@ -52,9 +52,9 @@ const prescription = (extra: Partial<Prescription> = {}): Prescription => ({
 });
 
 describe('PatientsPage', () => {
-  it('lista con el teléfono enmascarado; la cajera consulta pero no da de alta', async () => {
+  it('lista con el teléfono enmascarado; quien sólo consulta no da de alta', async () => {
     mockApi({ 'GET /patients': page([{ id: 'pa1', fullName: 'María Fernanda Gómez Ficticio', age: 41, phone: '•••• 1000', prescriptions: 1, purchases: 2, lastVisit: '2026-10-07' }]) });
-    renderApp(<PatientsPage />, { user: sessionUser('CASHIER') });
+    renderApp(<PatientsPage />, { user: sessionUser('CASHIER', { permissions: ['patients.view'] }) });
     expect((await screen.findAllByText('María Fernanda Gómez Ficticio')).length).toBeGreaterThan(0);
     expect(screen.getByText('•••• 1000')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nuevo paciente' })).not.toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('PatientDetailPage', () => {
 
   it('sin permiso de recetas no se muestran', async () => {
     mockApi({ 'GET /patients/pa1': { patient: { ...detail, prescriptions: [] } } });
-    renderApp(<PatientDetailPage />, { user: sessionUser('CASHIER'), path: '/pacientes/pa1', routes });
+    renderApp(<PatientDetailPage />, { user: sessionUser('CASHIER', { permissions: ['patients.view'] }), path: '/pacientes/pa1', routes });
     expect(await screen.findByRole('heading', { name: 'María Fernanda Gómez Ficticio' })).toBeInTheDocument();
     expect(screen.queryByText('Recetas')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Registrar receta' })).not.toBeInTheDocument();

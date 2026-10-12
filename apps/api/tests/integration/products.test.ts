@@ -196,6 +196,18 @@ describe('PATCH /products/:id', () => {
     });
   });
 
+  it('el farmacéutico pone el precio al dar de alta, pero no lo cambia después', async () => {
+    const pharmacist = await actorWithRole(app, 'PHARMACIST');
+    const created = await request(app)
+      .post('/api/v1/products')
+      .set(auth(pharmacist.token))
+      .send({ commercialName: `Alta farmacéutico ${randomUUID().slice(0, 6)}`, categoryId, presentation: 'BOX', purchasePrice: 10, salePrice: 25, minStock: 1 });
+    expect(created.status).toBe(201);
+    expect(created.body.product.salePrice).toBe(25);
+    const change = await request(app).patch(`/api/v1/products/${created.body.product.id}`).set(auth(pharmacist.token)).send({ salePrice: 30 });
+    expect(change.status).toBe(403);
+  });
+
   it('enviar el mismo precio no cuenta como cambio', async () => {
     const created = await createProduct(owner.token);
     const pharmacist = await actorWithRole(app, 'PHARMACIST');

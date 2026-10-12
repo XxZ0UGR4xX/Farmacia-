@@ -20,6 +20,10 @@ export function patientsRouter(): Router {
     const { q } = z.object({ q: z.string().max(100).default('') }).parse(req.query);
     res.json({ items: await patients.searchPatients(q) });
   });
+  // Punto de venta: recetas sin surtir del paciente (sólo folio, fecha, médico y medicamentos)
+  router.get('/:id/dispensable-prescriptions', authorize('sales.create'), async (req, res) => {
+    res.json({ items: await prescriptions.dispensablePrescriptions(uuidParam(req)) });
+  });
   router.get('/:id', authorize('patients.view'), async (req, res) => {
     res.json({ patient: await patients.getPatient(requireAuth(req), currentBranchId(req), uuidParam(req), clientInfo(req)) });
   });

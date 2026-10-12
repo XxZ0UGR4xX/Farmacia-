@@ -69,7 +69,7 @@ export const SYSTEM_ROLES: Record<SystemRoleCode, RoleDefinition> = {
   },
   CASHIER: {
     name: 'Cajero',
-    description: 'Ventas y consultas básicas.',
+    description: 'Ventas y consultas básicas. Registra al paciente y su receta al vender antibióticos.',
     permissions: [
       'products.view',
       'inventory.view',
@@ -77,6 +77,7 @@ export const SYSTEM_ROLES: Record<SystemRoleCode, RoleDefinition> = {
       'sales.create',
       'returns.view',
       'patients.view',
+      'patients.manage',
       'notifications.view',
     ],
   },
@@ -128,3 +129,13 @@ export function canGrantRole(
     : (actorPermissions as ReadonlySet<string>);
   return role.permissions.every((p) => granted.has(p));
 }
+
+/**
+ * Cambios posteriores a los permisos por omisión de los roles del sistema. Cada uno se aplica
+ * UNA sola vez por instalación (al correr el seed): si después el propietario quita el permiso,
+ * no se vuelve a agregar.
+ */
+export const ROLE_DEFAULT_UPDATES: readonly { id: string; grants: Partial<Record<SystemRoleCode, readonly PermissionKey[]>> }[] = [
+  // Fase 8 y decisión del propietario: quien vende antibióticos registra al paciente y su receta
+  { id: '2026-10-pacientes-en-mostrador', grants: { PHARMACIST: ['patients.manage'], CASHIER: ['patients.manage'] } },
+];

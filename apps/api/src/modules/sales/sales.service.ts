@@ -188,9 +188,7 @@ export async function createSale(auth: AuthContext, branchId: string, dto: Creat
 
   // Receta: los productos que la retienen (antibióticos, controlados) exigen ligarla o registrarla;
   // los que sólo la requieren, confirmar que se revisó
-  if (dto.prescription && !hasPermission(auth.roleCode, auth.permissions, 'prescriptions.manage')) {
-    throw AppError.forbidden('No tienes permiso para registrar recetas; pide apoyo a quien pueda hacerlo.');
-  }
+  // Registrar la receta que se retiene es parte de surtir: basta con poder vender (decisión del propietario)
   if (dto.patientId && !(await prisma.patient.findFirst({ where: { id: dto.patientId, deletedAt: null }, select: { id: true } }))) {
     throw AppError.badRequest('El paciente no existe', [{ path: 'patientId', message: 'Paciente inválido' }]);
   }

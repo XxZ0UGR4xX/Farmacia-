@@ -188,3 +188,23 @@ export async function voidPrescription(auth: AuthContext, branchId: string, id: 
   });
   return getPrescription(auth, branchId, id, client, { audit: false });
 }
+
+/**
+ * Recetas de un paciente que todavía se pueden surtir (sin anular y sin ventas vigentes).
+ * Es lo único que necesita el punto de venta: no expone el expediente ni las dosis.
+ */
+export async function dispensablePrescriptions(patientId: string) {
+  const rows = await prisma.prescription.findMany({
+    where: { patientId, deletedAt: null, sales: { none: { status: { not: 'CANCELLED' } } } },
+    include: { items: { select: { medicationName: true }, orderBy: { position: 'asc' } } },
+    orderBy: { issuedAt: 'desc' },
+    take: 10,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    folio: formatPrescriptionNumber(r.number),
+    doctorName: r.doctorName,
+    issuedAt: dateOnly(r.issuedAt),
+    medications: r.items.map((i) => i.medicationName),
+  }));
+}

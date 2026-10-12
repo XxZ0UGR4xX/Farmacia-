@@ -1,10 +1,8 @@
 import { LICENSE_REGEX } from '@farmacia/shared';
 import { clsx } from 'clsx';
 import { AlertTriangle, FileText } from 'lucide-react';
-import { usePrescriptions, type PatientSummary } from '../../api/patients';
+import { useDispensablePrescriptions, type PatientSummary } from '../../api/patients';
 import type { CreateSaleInput } from '../../api/sales';
-import { useAuth } from '../../auth/useAuth';
-import { Alert } from '../../components/ui/Alert';
 import { Checkbox, TextField } from '../../components/ui/FormField';
 import { formatDate } from '../../lib/format';
 import { useToday } from '../../lib/useToday';
@@ -56,14 +54,11 @@ export function PrescriptionPanel({
   needsRetention: boolean;
   needsPrescription: boolean;
 }) {
-  const { can } = useAuth();
   const today = useToday();
-  const canSee = can('prescriptions.view');
-  const canCreate = can('prescriptions.manage');
-  const recent = usePrescriptions({ patientId: value.patient?.id, page: 1, pageSize: 5 }, Boolean(needsRetention && value.patient && canSee));
+  // Una receta que se retiene sólo se surte una vez: el servidor devuelve sólo las que no tienen ventas
+  const dispensable = useDispensablePrescriptions(needsRetention ? value.patient?.id : undefined);
+  const available = dispensable.data ?? [];
   const set = (patch: Partial<RxState>) => onChange({ ...value, ...patch });
-  // Una receta que se retiene sólo se surte una vez: se ofrecen las que no tienen ventas
-  const available = recent.data?.data.filter((r) => r.sales === 0) ?? [];
 
   if (!needsRetention && !needsPrescription) return null;
 
@@ -78,14 +73,6 @@ export function PrescriptionPanel({
     );
   }
 
-  if (!canSee && !canCreate) {
-    return (
-      <Alert tone="warning" title="Producto que retiene receta">
-        Esta venta incluye antibióticos o medicamentos controlados. Pide a quien registra recetas (farmacéutico) que complete la venta.
-      </Alert>
-    );
-  }
-
   return (
     <div className="space-y-3 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200" data-testid="rx-panel">
       <p className="flex items-center gap-2 text-sm font-medium text-amber-900">
@@ -94,8 +81,7 @@ export function PrescriptionPanel({
       <PatientPicker value={value.patient} onChange={(patient) => onChange({ ...value, patient, choice: '' })} />
       {value.patient && (
         <div className="space-y-2" role="radiogroup" aria-label="Receta">
-          {canSee &&
-            available.map((r) => (
+          {available.map((r) => (
               <label key={r.id} className={clsx('flex cursor-pointer items-start gap-2 rounded-lg bg-white p-2 text-sm ring-1 ring-inset', value.choice === r.id ? 'ring-brand-500' : 'ring-slate-200')}>
                 <input type="radio" name="rx" className="mt-1 accent-brand-600" checked={value.choice === r.id} onChange={() => set({ choice: r.id })} />
                 <span>
@@ -104,13 +90,11 @@ export function PrescriptionPanel({
                 </span>
               </label>
             ))}
-          {canSee && recent.data && available.length === 0 && <p className="text-xs text-slate-600">El paciente no tiene recetas vigentes sin surtir.</p>}
-          {canCreate && (
-            <label className={clsx('flex cursor-pointer items-center gap-2 rounded-lg bg-white p-2 text-sm ring-1 ring-inset', value.choice === 'NEW' ? 'ring-brand-500' : 'ring-slate-200')}>
-              <input type="radio" name="rx" className="accent-brand-600" checked={value.choice === 'NEW'} onChange={() => set({ choice: 'NEW' })} />
-              Registrar la receta que trae el paciente
-            </label>
-          )}
+          {dispensable.data && available.length === 0 && <p className="text-xs text-slate-600">El paciente no tiene recetas vigentes sin surtir.</p>}
+          <label className={clsx('flex cursor-pointer items-center gap-2 rounded-lg bg-white p-2 text-sm ring-1 ring-inset', value.choice === 'NEW' ? 'ring-brand-500' : 'ring-slate-200')}>
+            <input type="radio" name="rx" className="accent-brand-600" checked={value.choice === 'NEW'} onChange={() => set({ choice: 'NEW' })} />
+            Registrar la receta que trae el paciente
+          </label>
           {value.choice === 'NEW' && (
             <div className="grid gap-2 rounded-lg bg-white p-2 ring-1 ring-inset ring-slate-200">
               <TextField label="Médico que prescribe" value={value.doctorName} onChange={(e) => set({ doctorName: e.target.value })} />

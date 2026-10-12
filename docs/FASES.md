@@ -17,6 +17,21 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
 
+## Decisiones del propietario
+
+| Tema | Decisión |
+|---|---|
+| Margen (sobre costo o sobre precio) | Lo define el propietario en Configuración (Fase 10) |
+| IVA de los datos de demostración | Se conserva |
+| Precio del farmacéutico | Lo pone al dar de alta el producto; cambiarlo después requiere `products.change_price` |
+| Cajero y pacientes | Consulta y registra pacientes (para la receta en mostrador) |
+| Usuarios de demostración | Cambian su contraseña al entrar por primera vez |
+| Antibióticos y controlados | Siempre con receta obligatoria, la venda quien la venda: el cajero registra la receta al cobrar |
+| Receta retenida | Se surte una sola vez |
+
+Los cambios de permisos por omisión se aplican una sola vez en cada instalación al correr
+`npm run db:seed` (si después se quitan desde Roles, no se vuelven a agregar).
+
 ## Fase 8: entregado
 
 > El sistema es una **herramienta administrativa y de registro**: transcribe lo que indicó el
@@ -49,7 +64,8 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
   paciente: una registrada que aún no se surte, o registrarla en el momento con el médico y la cédula.
   Una receta retenida se surte una sola vez (salvo que esa venta se cancele).
 - Los que sólo **requieren** receta mantienen la confirmación "Revisé la receta médica".
-- La cajera no registra recetas: el punto de venta le indica que lo complete el farmacéutico.
+- Quien vende registra la receta al cobrar (también la cajera, que ve sólo las recetas sin surtir
+  del paciente: folio, fecha, médico y medicamentos; no el expediente ni las dosis).
 - El detalle de la venta muestra el paciente y la receta sólo a quien puede ver pacientes.
 
 **Permisos por omisión** (instalaciones nuevas): el farmacéutico ahora también da de alta
