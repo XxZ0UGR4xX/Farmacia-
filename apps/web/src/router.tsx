@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet, type RouteObject } from 'react-router';
 import { PublicOnly, RequireAuth, RequirePermission } from './auth/guards';
 import { useAuth } from './auth/useAuth';
@@ -37,6 +38,18 @@ import { RoleEditorPage } from './features/users/RoleEditorPage';
 import { RolesListPage } from './features/users/RolesListPage';
 import { UsersLayout } from './features/users/UsersLayout';
 import { UsersListPage } from './features/users/UsersListPage';
+import { Spinner } from './components/ui/Spinner';
+
+// Páginas pesadas (gráficas) se cargan sólo cuando se visitan
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+
+function PageLoader() {
+  return (
+    <div className="flex justify-center py-16 text-brand-600">
+      <Spinner />
+    </div>
+  );
+}
 
 /** Inicio: dashboard si hay permiso; si no, el primer módulo permitido (p.ej. punto de venta). */
 function HomeRoute() {
@@ -204,6 +217,16 @@ const implementedRoutes: RouteObject[] = [
     element: (
       <RequirePermission permission="suppliers.view">
         <SuppliersPage />
+      </RequirePermission>
+    ),
+  },
+  {
+    path: 'reportes',
+    element: (
+      <RequirePermission permission="reports.view">
+        <Suspense fallback={<PageLoader />}>
+          <ReportsPage />
+        </Suspense>
       </RequirePermission>
     ),
   },

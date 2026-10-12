@@ -22,6 +22,11 @@
   --color-accent-500: #3b82f6;
   --color-accent-600: #2563eb;
   --color-accent-700: #1d4ed8;
+
+  /* Gráficas: una serie = un color (validado: contraste ≥ 3:1 sobre blanco) */
+  --color-chart-1: #2a78d6;
+  --color-chart-grid: #e2e8f0;
+  --color-chart-axis: #cbd5e1;
 }
 
 @layer base {

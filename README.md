@@ -6,9 +6,10 @@ compras, proveedores, punto de venta, pacientes, recetas, reportes y auditoría 
 Está pensado para el doctor propietario, que necesita saber de un vistazo cómo está su farmacia.
 La arquitectura admite desde el inicio más empleados, roles y **sucursales** sin reconstruir el sistema.
 
-> **Estado:** Fases 1 a 8 de 11 completas (arquitectura, base de datos, autenticación,
+> **Estado:** Fases 1 a 9 de 11 completas (arquitectura, base de datos, autenticación,
 > usuarios, roles, permisos, productos, catálogos, lotes, existencias, movimientos, proveedores,
-> compras, punto de venta, ventas, devoluciones, caducidades, alertas, pacientes y recetas).
+> compras, punto de venta, ventas, devoluciones, caducidades, alertas, pacientes, recetas,
+> dashboard y reportes con exportación a Excel, CSV y PDF).
 > Ver [docs/FASES.md](docs/FASES.md).
 
 ## Tecnología

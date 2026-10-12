@@ -20,6 +20,7 @@ import { notificationsRouter } from './modules/notifications/notifications.route
 import { patientsRouter, prescriptionsRouter } from './modules/patients/patients.routes';
 import { productsRouter } from './modules/products/products.routes';
 import { purchasesRouter } from './modules/purchases/purchases.routes';
+import { reportsRouter } from './modules/reports/reports.routes';
 import { returnsRouter, salesRouter } from './modules/sales/sales.routes';
 import { settingsRouter } from './modules/settings/settings.routes';
 import { suppliersRouter } from './modules/suppliers/suppliers.routes';
@@ -109,6 +110,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/notifications', notificationsRouter());
   app.use('/api/v1/patients', patientsRouter());
   app.use('/api/v1/prescriptions', prescriptionsRouter());
+  app.use('/api/v1/reports', reportsRouter());
   app.use('/api/v1/settings', settingsRouter());
 
   app.use(notFoundHandler);

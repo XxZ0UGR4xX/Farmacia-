@@ -53,6 +53,7 @@ export const AUDIT_ACTIONS = {
   PRESCRIPTION_CREATE: 'Registro de receta',
   PRESCRIPTION_VIEW: 'Consulta de receta',
   PRESCRIPTION_VOID: 'Anulación de receta',
+  REPORT_EXPORT: 'Exportación de reporte',
   SETTINGS_UPDATE: 'Cambio de configuración',
 } as const;
 

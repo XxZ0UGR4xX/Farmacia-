@@ -13,8 +13,8 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 6 | Punto de venta + ventas + devoluciones | ✅ Completa |
 | 7 | Caducidades + alertas + notificaciones | ✅ Completa |
 | 8 | Pacientes + recetas | ✅ Completa |
-| 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | ⏳ Siguiente |
-| 10 | Auditoría (UI) + configuración + seguridad + optimización | Pendiente |
+| 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | ✅ Completa |
+| 10 | Auditoría (UI) + configuración + seguridad + optimización | ⏳ Siguiente |
 | 11 | Pruebas + documentación + despliegue | Pendiente |
 
 ## Decisiones del propietario
@@ -31,6 +31,65 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 
 Los cambios de permisos por omisión se aplican una sola vez en cada instalación al correr
 `npm run db:seed` (si después se quitan desde Roles, no se vuelven a agregar).
+
+## Fase 9: entregado
+
+**Dashboard** (`/`): indicadores reales de la sucursal, que se actualizan solos cada minuto y
+después de cada venta, compra o ajuste. Cada quien ve sólo lo que su rol permite:
+
+| Indicador | Quién lo ve |
+|---|---|
+| Ventas de hoy (contra ayer), productos vendidos, ventas de los últimos 7 días, más vendidos y últimas ventas | Con `sales.view`. Sin `reports.view` son **sus propias** ventas ("Mis ventas de hoy") |
+| Utilidad bruta del día y valor del inventario (a costo y a precio de venta) | Con `reports.financial` |
+| Stock bajo y agotados | Con `inventory.view` |
+| Próximos a caducar y caducados en anaquel | Con `expirations.view` |
+| Devoluciones por revisar | Con `returns.view` |
+| Pedidos por recibir | Con `purchases.view` |
+| Pagos vencidos y por vencer a proveedores | Con `purchases.pay` (igual que su alerta) |
+
+**Reportes** (`/reportes`, permiso `reports.view`), con periodo (Hoy, 7 días, 30 días, Este mes,
+Mes anterior, Este año o fechas libres, hasta 2 años) y agrupación por día, semana o mes:
+
+- **Ventas:** netas (brutas menos devoluciones), número de ventas, ticket promedio, devoluciones y
+  cancelaciones; por periodo, forma de pago, categoría, hora del día y usuario (con descuentos y
+  cancelaciones de cada quien).
+- **Productos:** los más vendidos (unidades, devueltas, total) y los **sin movimiento**: con
+  existencia y sin ventas en el periodo, ordenados por el dinero detenido en anaquel.
+- **Inventario:** fotografía de hoy por categoría y mercancía en riesgo (por caducar, caducada,
+  en cuarentena).
+- **Mermas y ajustes:** bajas por motivo (caducidad, daño, robo, consumo interno, correcciones) y
+  devoluciones desechadas, por periodo y por producto; ajustes de entrada aparte.
+- **Compras** (sólo con `reports.financial`): por proveedor, por periodo y cuentas por pagar.
+
+Reglas de cálculo:
+- Las ventas canceladas no cuentan; las devoluciones se restan en la fecha en que se hicieron.
+- **Utilidad bruta** = venta sin IVA − costo de lo vendido (el costo real de los lotes surtidos),
+  ambos netos de devoluciones. Se muestra el margen sobre la venta y sobre el costo.
+- Costos, utilidad, valor a costo y compras **sólo** con `reports.financial`: sin ese permiso
+  esos datos no salen del servidor (ni en pantalla ni en archivos).
+- Las fechas se agrupan con la zona horaria de la farmacia; la semana empieza en lunes.
+
+**Exportación** (permiso `reports.export`, queda en auditoría como `REPORT_EXPORT`):
+- **Excel (.xlsx):** todas las tablas del reporte, una hoja por tabla, con fechas y montos con
+  formato, encabezado fijo y filtros. Se genera en el servidor sin dependencias externas y el texto
+  nunca se interpreta como fórmula.
+- **CSV:** la tabla principal del reporte (compatible con Excel, con protección contra fórmulas).
+- **Imprimir / PDF:** versión para papel con encabezado (reporte, periodo, fecha y usuario).
+
+**Gráficas:** columnas y barras de una sola serie y un solo color (validado para contraste y
+daltonismo), con tooltip al pasar el cursor o tocar, y **"Ver tabla"** en cada gráfica (la versión
+accesible de los mismos datos). Los reportes se cargan sólo cuando se visitan.
+
+**Verificación**
+- `npm run typecheck`: sin errores.
+- `npm test`: 222 pruebas de API (17 nuevas: totales exactos en una sucursal aislada, utilidad neta
+  de devoluciones, agrupación por semana y mes, validación del periodo, columnas financieras
+  ocultas sin permiso, dashboard por rol, Excel y CSV, auditoría de la exportación y el generador
+  de Excel) y 77 de frontend (6 nuevas).
+- Navegador real: una venta de la cajera aparece en el dashboard del propietario; Excel y CSV
+  descargados y abiertos; las cinco pestañas; vista de tabla; PDF de varias páginas; farmacéutico,
+  almacenista y cajera ven sólo lo suyo; vista móvil sin desplazamiento horizontal. Sin errores en
+  la consola.
 
 ## Fase 8: entregado
 

@@ -191,6 +191,23 @@ o `prescription: { doctorName, doctorLicense?, issuedAt }` junto con `patientId`
 `sales.create`: registrar la receta retenida es parte de surtir). La respuesta de la venta incluye `patient` y `prescription` sólo para
 quien tiene `patients.view`.
 
+## Reportes y dashboard (`/reports`)
+
+Los reportes con periodo aceptan `from` y `to` (`AAAA-MM-DD`; sin fechas: los últimos 30 días,
+máximo 731) y `groupBy` (`day`, `week` —inicia en lunes— o `month`; sin él se elige según la
+duración). Los campos de costo y utilidad (`profit`, `cost`, `costValue`, `margin`, `markup`…)
+sólo aparecen con `reports.financial`.
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /reports/dashboard` | `dashboard.view` | Indicadores de hoy según los permisos: `sales` (`sales.view`; propias si no hay `reports.view`), `inventory`, `expirations`, `returns`, `purchases` (saldos sólo con `purchases.pay`). Una sección sin permiso llega en `null` |
+| `GET /reports/sales` | `reports.view` | `totals` (brutas, devoluciones, netas, ticket promedio, canceladas), `series`, `byMethod`, `byCashier`, `byCategory`, `byHour` |
+| `GET /reports/products` | `reports.view` | `top` (más vendidos) y `slow` (con existencia y sin ventas en el periodo), `productsSold`, `slowCount` |
+| `GET /reports/inventory` | `reports.view` | Fotografía de hoy: `totals`, `byCategory` y `risk` (por caducar, caducado, cuarentena) |
+| `GET /reports/shrinkage` | `reports.view` | `losses` por motivo (incluye devoluciones desechadas), `gains`, `top` por producto y `series` |
+| `GET /reports/purchases` | `reports.view` + `reports.financial` | Compras recibidas por proveedor y por periodo, y cuentas por pagar |
+| `GET /reports/:report/export` | `reports.view` + `reports.export` | `report`: `sales`, `products`, `inventory`, `shrinkage` o `purchases`; `format`: `xlsx` (todas las tablas) o `csv` (la principal). Audita `REPORT_EXPORT` |
+
 ## Configuración
 
 | Método y ruta | Permiso | Descripción |
