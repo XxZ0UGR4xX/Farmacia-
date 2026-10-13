@@ -77,9 +77,10 @@ farmacia/
 │   │   │   ├── shared/              # Errores, utilidades HTTP, tipos comunes
 │   │   │   ├── modules/             # Un directorio por módulo de negocio
 │   │   │   │   ├── auth/            # *.routes.ts, *.controller.ts, *.service.ts, *.schemas.ts
-│   │   │   │   ├── audit/
-│   │   │   │   ├── users/           # (Fase 2)
-│   │   │   │   ├── products/        # (Fase 3) ...
+│   │   │   │   ├── users/, roles/, branches/, settings/, audit/
+│   │   │   │   ├── products/, catalogs/, inventory/   # inventory.core: único punto que mueve existencias
+│   │   │   │   ├── suppliers/, purchases/, sales/      # ventas, cancelaciones y devoluciones
+│   │   │   │   ├── patients/, notifications/, reports/
 │   │   │   ├── app.ts               # Construcción de la app Express (testeable)
 │   │   │   └── server.ts            # Arranque del servidor
 │   │   ├── tests/                   # Pruebas unitarias e integración (Vitest + Supertest)
@@ -90,8 +91,9 @@ farmacia/
 │       │   ├── auth/                # AuthProvider, rutas protegidas, permisos
 │       │   ├── components/
 │       │   │   ├── ui/              # Botones, inputs, tarjetas, badges (reutilizables)
+│       │   │   ├── charts/          # Columnas, barras, indicadores y vista de tabla accesible
 │       │   │   └── layout/          # Sidebar, Topbar, AppLayout
-│       │   ├── features/            # Páginas por módulo (auth, dashboard, inventory, ...)
+│       │   ├── features/            # Páginas por módulo; cada una se descarga al visitarla (React.lazy)
 │       │   ├── lib/                 # Utilidades (formato de moneda, fechas)
 │       │   ├── router.tsx
 │       │   └── main.tsx
@@ -99,8 +101,10 @@ farmacia/
 │       └── Dockerfile
 ├── packages/
 │   └── shared/                      # Código compartido FE/BE: catálogo de permisos y roles
-├── docs/                            # Documentación técnica
-├── scripts/                         # Backups y utilidades de operación
+├── deploy/Caddyfile                 # HTTPS automático (perfil "https" de docker compose)
+├── e2e/                             # Pruebas de punta a punta (Playwright) + playwright.config.ts
+├── docs/                            # Manual, despliegue, arquitectura, base de datos, API, seguridad
+├── scripts/                         # backup.sh y restore.sh
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -144,11 +148,15 @@ farmacia/
 | Datos inválidos | Validación con Zod en cada endpoint y constraints en la base de datos. |
 | Fugas de información | Errores 500 genéricos. Los detalles solo van al log del servidor. |
 | Secretos | Solo en variables de entorno (`.env`, nunca versionado). La app no arranca si faltan. |
-| Pérdida de datos | Script de respaldo `pg_dump` con rotación (`scripts/backup.sh`). |
+| Pérdida de datos | `scripts/backup.sh` (base e imágenes, verificado, con rotación) y `scripts/restore.sh`; ciclo completo probado en Docker. Ver [DESPLIEGUE.md](DESPLIEGUE.md#5-respaldos-diarios). |
+| Rutas sin protección | Prueba automática que recorre todas las rutas declaradas y exige 401 sin sesión. |
+| Tráfico interceptado | HTTPS con Caddy y Let's Encrypt, HSTS, cookies `Secure`. |
+
+Detalle de todos los controles: [SEGURIDAD.md](SEGURIDAD.md).
 
 ## 7. Escalabilidad
 
 - **Sucursales**: todo dato operativo tiene `branch_id`. Para abrir una nueva sucursal basta con crear el registro y asignar usuarios.
 - **Más usuarios**: los roles y permisos son datos, no código. Se pueden crear roles personalizados.
 - **Más instancias de API**: la caché de sesiones está aislada en un módulo y puede moverse a Redis sin tocar la lógica.
-- **Docker**: `docker-compose.yml` levanta PostgreSQL, la API y el frontend (nginx).
+- **Docker**: `docker-compose.yml` levanta PostgreSQL, la API y el frontend (nginx); con el perfil `https` agrega Caddy.

@@ -72,6 +72,9 @@ const PAY_MODES: { mode: PayMode; label: string; icon: typeof Banknote }[] = [
   { mode: 'MIXED', label: 'Mixto', icon: Split },
 ];
 
+/** Código alfanumérico como los que acepta el catálogo, con al menos un dígito (no un nombre). */
+const BARCODE_LIKE = /^(?=.*\d)[0-9A-Za-z-]{4,64}$/;
+
 export function PosPage() {
   const { can } = useAuth();
   const toast = useToast();
@@ -149,10 +152,12 @@ export function PosPage() {
   );
 
   const addByBarcode = useCallback(
-    async (code: string) => {
+    async (code: string, fallback?: () => boolean) => {
       try {
         addProduct(await findProductByBarcode(code));
       } catch {
+        // Un texto con números (p. ej. "AB-1234") puede ser un nombre: se intenta la búsqueda
+        if (fallback?.()) return;
         toast.error(`No hay ningún producto con el código ${code}`);
         setSearch('');
       }
@@ -295,8 +300,16 @@ export function PosPage() {
                   if (e.key !== 'Enter') return;
                   e.preventDefault();
                   const code = search.trim();
+                  const single = () => {
+                    if (results.data?.data.length !== 1 || q !== code) return false;
+                    addProduct(results.data.data[0]!);
+                    return true;
+                  };
+                  // Lector de códigos: numérico (EAN/UPC) o alfanumérico sin espacios (Code 128).
+                  // Se busca por código sin esperar a la búsqueda por nombre: el lector escribe muy rápido.
                   if (/^\d{6,}$/.test(code)) void addByBarcode(code);
-                  else if (results.data?.data.length === 1 && q === code) addProduct(results.data.data[0]!);
+                  else if (BARCODE_LIKE.test(code)) void addByBarcode(code, single);
+                  else single();
                 }}
               />
               <Button variant="secondary" className="mt-6 shrink-0" aria-label="Escanear con la cámara" onClick={() => setScanning(true)} icon={<Camera className="size-5" />} />

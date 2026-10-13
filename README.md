@@ -6,11 +6,14 @@ compras, proveedores, punto de venta, pacientes, recetas, reportes y auditoría 
 Está pensado para el doctor propietario, que necesita saber de un vistazo cómo está su farmacia.
 La arquitectura admite desde el inicio más empleados, roles y **sucursales** sin reconstruir el sistema.
 
-> **Estado:** Fases 1 a 10 de 11 completas (arquitectura, base de datos, autenticación,
-> usuarios, roles, permisos, productos, catálogos, lotes, existencias, movimientos, proveedores,
-> compras, punto de venta, ventas, devoluciones, caducidades, alertas, pacientes, recetas,
-> dashboard, reportes con exportación a Excel, CSV y PDF, auditoría, configuración y sucursales).
+> **Estado:** las 11 fases están completas: usuarios, roles y permisos; productos y catálogos;
+> lotes, existencias y movimientos; proveedores y compras; punto de venta, ventas y devoluciones;
+> caducidades y alertas; pacientes y recetas; dashboard y reportes (Excel, CSV y PDF); auditoría,
+> configuración y sucursales; pruebas, manual y guía de despliegue con HTTPS y respaldos.
 > Ver [docs/FASES.md](docs/FASES.md).
+
+**Para usar el sistema:** [Manual de usuario](docs/MANUAL_DE_USUARIO.md) ·
+**Para instalarlo en la farmacia o en un servidor:** [Guía de despliegue](docs/DESPLIEGUE.md)
 
 ## Tecnología
 
@@ -29,11 +32,14 @@ La arquitectura admite desde el inicio más empleados, roles y **sucursales** si
 apps/api         API REST (Express + Prisma)
 apps/web         Frontend (React)
 packages/shared  Catálogo de permisos y roles compartido por frontend y backend
-docs/            Arquitectura, base de datos y plan de fases
-scripts/         Respaldos
+docs/            Manual, despliegue, arquitectura, base de datos, API, seguridad y fases
+deploy/          Configuración de HTTPS (Caddy)
+scripts/         Respaldo y restauración
 ```
 
-Documentación técnica:
+Documentación:
+- [Manual de usuario](docs/MANUAL_DE_USUARIO.md)
+- [Guía de despliegue: instalación, HTTPS, respaldos y actualizaciones](docs/DESPLIEGUE.md)
 - [Arquitectura y seguridad](docs/ARQUITECTURA.md)
 - [Base de datos y modelo entidad-relación](docs/BASE_DE_DATOS.md)
 - [Plan por fases](docs/FASES.md)
@@ -108,10 +114,12 @@ docker compose exec api node dist/seed.js     # sólo la primera vez
 
 La aplicación queda en http://localhost:8080. La API aplica las migraciones pendientes al arrancar.
 
-**Producción:** sirve la aplicación con **HTTPS**, por ejemplo detrás de Caddy, Traefik o
-nginx con Let's Encrypt. Las cookies de sesión llevan el atributo `Secure`, así que fuera de
-`localhost` el inicio de sesión requiere HTTPS. Si solo vas a probar en una red local por HTTP,
-usa `COOKIE_SECURE=false`.
+**Producción con HTTPS:** con un dominio que apunte al servidor, define `DOMAIN` y
+`APP_URL=https://…` en `.env` y arranca con `docker compose --profile https up -d --build`:
+Caddy obtiene y renueva el certificado de Let's Encrypt. Las cookies de sesión llevan el
+atributo `Secure`, así que fuera de `localhost` el inicio de sesión requiere HTTPS (en una red
+local privada se puede usar `COOKIE_SECURE=false`). Paso a paso en
+[docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
 ## Comandos
 
@@ -120,12 +128,34 @@ usa `COOKIE_SECURE=false`.
 | `npm run dev:api` / `npm run dev:web` | Servidores de desarrollo |
 | `npm run typecheck` | Verificación de tipos de todos los paquetes |
 | `npm test` | Pruebas de API (requiere `farmacia_test`) y frontend |
+| `npm run test:e2e` | Pruebas de punta a punta en navegador (requiere `E2E_DATABASE_URL`, ver abajo) |
 | `npm run build` | Build de producción |
 | `npm run db:migrate` | Crear una migración nueva tras cambiar el esquema (desarrollo) |
 | `npm run db:deploy` | Aplicar migraciones pendientes (producción) |
 | `npm run db:seed` | Roles, permisos, sucursal, configuración y propietario |
 | `npm run db:seed:demo` | Lo anterior + usuarios, catálogo y lotes ficticios de demostración (nunca en producción) |
-| `./scripts/backup.sh [--docker]` | Respaldo de la base con rotación |
+| `./scripts/backup.sh [--docker]` | Respaldo verificado de la base y las imágenes, con rotación |
+| `./scripts/restore.sh [--docker] <archivo.dump>` | Restaura un respaldo (pide confirmación) |
+
+## Pruebas
+
+| Tipo | Qué cubre | Cómo |
+|---|---|---|
+| API (Vitest + Supertest) | 236 pruebas: reglas de negocio, permisos, concurrencia, reportes, seguridad de todas las rutas | `npm test` (base `TEST_DATABASE_URL`) |
+| Frontend (Vitest + Testing Library) | 81 pruebas de pantallas y componentes | `npm test` |
+| De punta a punta (Playwright) | 10 flujos completos en Chromium: ventas, recetas, compras, inventario, reportes, configuración y auditoría | `npm run test:e2e` |
+
+Para las pruebas de punta a punta crea una base exclusiva (su nombre debe contener `e2e`) e
+instala el navegador una vez:
+
+```bash
+psql -U postgres -c "CREATE DATABASE farmacia_e2e OWNER farmacia;"
+npx playwright install chromium
+E2E_DATABASE_URL=postgresql://farmacia:tu_password@localhost:5432/farmacia_e2e npm run test:e2e
+```
+
+La prueba levanta sola la API (puerto 4100) y la interfaz (4174), aplica las migraciones y carga
+los datos de demostración.
 
 ## Respaldos
 
@@ -135,9 +165,10 @@ usa `COOKIE_SECURE=false`.
 ```
 
 Genera `backups/farmacia_AAAAMMDD_HHMMSS.dump` (base de datos) y `..._imagenes.tar.gz` (imágenes de
-productos), verifica que el respaldo de la base se pueda leer y borra los respaldos
-con más de `BACKUP_RETENTION_DAYS` días. Para programarlo a diario, mira el encabezado del script.
-Guarda una copia **fuera del servidor**, porque los respaldos contienen datos sensibles.
+productos), verifica que ambos se puedan leer y borra los respaldos con más de
+`BACKUP_RETENTION_DAYS` días. En modo `--docker` no hace falta tener PostgreSQL instalado.
+`./scripts/restore.sh` los restaura. Cómo programarlos a diario (Linux y Windows) y guardarlos
+**fuera del servidor**, cifrados: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md#5-respaldos-diarios).
 
 ## Seguridad
 
@@ -150,15 +181,10 @@ Guarda una copia **fuera del servidor**, porque los respaldos contienen datos se
 
 Detalle completo en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#6-seguridad-resumen).
 
-### Dependencias con avisos de `npm audit`
+### Dependencias
 
-Los tres avisos vienen de herramientas de compilación o de migración, no del código que atiende
-peticiones. La "solución" que propone npm es bajar a Prisma 6, un cambio incompatible.
-
-- `mysql2` llega como dependencia transitiva del CLI de Prisma. El sistema usa PostgreSQL y
-  nunca carga ese controlador.
-- `deepmerge-ts` lo usa el CLI de Prisma para combinar su propio archivo `prisma.config.ts`,
-  nunca datos de usuarios.
-- `esbuild`: el aviso afecta solo a su servidor de desarrollo en Windows, que este proyecto no usa.
-
-Hay que revisarlos de nuevo al actualizar Prisma.
+`npm audit --omit=dev` reporta **0 vulnerabilidades** en lo que corre en producción. El CLI de
+Prisma traía versiones con avisos de `mysql2` y `deepmerge-ts`; se fijaron versiones corregidas
+con `overrides` en `package.json`. Queda un aviso **bajo** de `esbuild` que sólo afecta a *su*
+servidor de desarrollo en Windows, que este proyecto no usa. Detalle en
+[docs/SEGURIDAD.md](docs/SEGURIDAD.md#7-dependencias).

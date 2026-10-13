@@ -11,3 +11,8 @@ backups/
 .vite/
 *.tsbuildinfo
 apps/api/uploads/
+
+# Pruebas E2E (Playwright)
+test-results/
+playwright-report/
+blob-report/

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { inflateRawSync } from 'node:zlib';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app';
@@ -308,6 +309,50 @@ describe('GET /reports/:report/export', () => {
     expect(header).toBe('Periodo (por día),Ventas,Unidades,Ventas brutas,Devoluciones,Ventas netas');
     const owner = await request(app).get('/api/v1/reports/products/export?format=csv').set(as('owner'));
     expect(owner.text).toContain('Utilidad bruta');
+  });
+
+  it('cada reporte se exporta a Excel con todas sus tablas', async () => {
+    // Nombres de las hojas dentro del .xlsx (es un ZIP: se lee xl/workbook.xml)
+    const sheetsOf = (buf: Buffer) => {
+      for (let offset = 0; buf.readUInt32LE(offset) === 0x04034b50; ) {
+        const size = buf.readUInt32LE(offset + 18);
+        const nameLength = buf.readUInt16LE(offset + 26);
+        const start = offset + 30 + nameLength + buf.readUInt16LE(offset + 28);
+        if (buf.subarray(offset + 30, offset + 30 + nameLength).toString() === 'xl/workbook.xml') {
+          return [...inflateRawSync(buf.subarray(start, start + size)).toString().matchAll(/<sheet name="([^"]+)"/g)].map((m) => m[1]);
+        }
+        offset = start + size;
+      }
+      return [];
+    };
+    const download = (report: string, who = 'owner') =>
+      request(app)
+        .get(`/api/v1/reports/${report}/export?format=xlsx`)
+        .set(as(who))
+        .buffer(true)
+        .parse((r, cb) => {
+          const chunks: Buffer[] = [];
+          r.on('data', (c: Buffer) => chunks.push(c));
+          r.on('end', () => cb(null, Buffer.concat(chunks)));
+        });
+    const expected: Record<string, string[]> = {
+      sales: ['Ventas por periodo', 'Formas de pago', 'Por cajero', 'Por categoría', 'Por hora'],
+      products: ['Más vendidos', 'Sin movimiento'],
+      inventory: ['Inventario por categoría', 'Riesgo'],
+      shrinkage: ['Mermas por motivo', 'Productos con más merma'],
+      purchases: ['Compras por proveedor', 'Cuentas por pagar', 'Compras por periodo'],
+    };
+    for (const [report, sheets] of Object.entries(expected)) {
+      const res = await download(report);
+      expect(res.status, report).toBe(200);
+      expect(sheetsOf(res.body as Buffer), report).toEqual(sheets);
+    }
+    // Sin permiso financiero las mermas e inventario se exportan sin costos
+    const shrink = await request(app).get('/api/v1/reports/shrinkage/export?format=csv').set(as('manager'));
+    expect(shrink.text.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('Sentido,Motivo,Registros,Unidades');
+    expect(shrink.text).toContain('Producto caducado');
+    const inv = await request(app).get('/api/v1/reports/inventory/export?format=csv').set(as('manager'));
+    expect(inv.text).not.toContain('Valor a costo');
   });
 
   it('exige permiso de exportar y un reporte válido', async () => {

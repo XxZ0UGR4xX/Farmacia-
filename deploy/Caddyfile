@@ -1,0 +1,15 @@
+# HTTPS automático con Let's Encrypt (se renueva solo).
+# DOMAIN viene del .env, p. ej. farmacia.midominio.com (su DNS debe apuntar a este servidor).
+{$DOMAIN} {
+	encode zstd gzip
+
+	# La API va directo (un solo proxy): así registra la IP real del cliente
+	# para la auditoría y los límites de intentos de inicio de sesión.
+	@api path /api/*
+	reverse_proxy @api api:4000
+
+	# La aplicación web (nginx con sus cabeceras de seguridad)
+	reverse_proxy web:80
+
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}

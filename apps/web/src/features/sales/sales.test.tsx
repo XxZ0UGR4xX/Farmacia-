@@ -116,6 +116,24 @@ describe('PosPage', () => {
     expect(screen.queryByTestId('cart-line')).not.toBeInTheDocument();
   });
 
+  it('acepta códigos alfanuméricos del lector (Code 128) aunque se escaneen rápido', async () => {
+    mockApi({
+      'GET /settings/defaults': defaults,
+      'GET /products/barcode/LAB-00123X': { product: product() },
+      'GET /products/barcode/NOEXISTE-9': new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'No existe' } }), { status: 404 }),
+      'GET /products': { data: [], meta: { page: 1, pageSize: 8, total: 0, totalPages: 1 } },
+    });
+    renderApp(<PosPage />, { user: sessionUser('CASHIER') });
+    const search = screen.getByLabelText('Producto');
+    await userEvent.type(search, 'LAB-00123X{Enter}');
+    await screen.findByTestId('cart-line');
+    await userEvent.type(search, 'LAB-00123X{Enter}');
+    await waitFor(() => expect(screen.getByLabelText('Cantidad de Paracetamol 500 mg')).toHaveValue('2'));
+    // Un código que no existe avisa, como los numéricos
+    await userEvent.type(search, 'NOEXISTE-9{Enter}');
+    expect(await screen.findByText('No hay ningún producto con el código NOEXISTE-9')).toBeInTheDocument();
+  });
+
   it('no agrega productos sin existencia y exige confirmar la receta', async () => {
     mockApi({
       'GET /settings/defaults': defaults,

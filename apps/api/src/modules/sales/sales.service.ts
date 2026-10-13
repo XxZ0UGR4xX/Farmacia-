@@ -39,7 +39,11 @@ export const saleInclude = {
   items: {
     include: {
       product: { select: { id: true, sku: true, barcode: true, commercialName: true, concentration: true, presentation: true, requiresPrescription: true, isControlled: true } },
-      batches: { include: { batch: { select: { id: true, lotNumber: true, expiresAt: true } } } },
+      // Mismo orden en que FEFO los surtió: las devoluciones regresan primero al último lote usado
+      batches: {
+        include: { batch: { select: { id: true, lotNumber: true, expiresAt: true } } },
+        orderBy: [{ batch: { expiresAt: 'asc' } }, { batch: { receivedAt: 'asc' } }, { batchId: 'asc' }],
+      },
     },
     orderBy: { position: 'asc' },
   },

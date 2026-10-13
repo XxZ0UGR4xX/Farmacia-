@@ -15,7 +15,7 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 | 8 | Pacientes + recetas | ✅ Completa |
 | 9 | Reportes + dashboard (gráficas, exportación PDF/Excel/CSV) | ✅ Completa |
 | 10 | Auditoría (UI) + configuración + seguridad + optimización | ✅ Completa |
-| 11 | Pruebas + documentación + despliegue | ⏳ Siguiente |
+| 11 | Pruebas + documentación + despliegue | ✅ Completa |
 
 ## Decisiones del propietario
 
@@ -31,6 +31,54 @@ verificación de que lo anterior sigue funcionando. No se avanza con errores cr�
 
 Los cambios de permisos por omisión se aplican una sola vez en cada instalación al correr
 `npm run db:seed` (si después se quitan desde Roles, no se vuelven a agregar).
+
+## Fase 11: entregado
+
+**Pruebas**
+- **De punta a punta** (`npm run test:e2e`, Playwright con Chromium): 10 pruebas en un navegador
+  real contra la API y la interfaz compiladas, sobre una base exclusiva (`E2E_DATABASE_URL`, su
+  nombre debe contener "e2e"). Cubren el acceso por rol, el cambio obligatorio de contraseña, la
+  venta en efectivo con cambio y corte, el antibiótico con receta registrada en la caja, la compra
+  recibida con lote, el ajuste con motivo, reportes con Excel y la configuración del margen con su
+  auditoría. Cada prueba crea sus propios productos: se pueden repetir sin agotar el inventario.
+- **CI (GitHub Actions)**: tres trabajos — pruebas de API y frontend, pruebas de punta a punta, y
+  construcción de las imágenes de Docker (más revisión de los scripts con `shellcheck`).
+- **Cobertura medida:** API 95 % de líneas (92 % de instrucciones, 80 % de ramas); frontend 69 %
+  de líneas en pruebas unitarias, con los flujos principales además en pruebas de punta a punta.
+
+**Errores encontrados y corregidos al probar**
+- Punto de venta: un código de barras **alfanumérico** (permitido en el catálogo, común en
+  etiquetas Code 128) no siempre se agregaba al escanearlo rápido; ahora se busca por código de
+  inmediato. Prueba nueva.
+- Devoluciones: el orden de los lotes de una venta no estaba fijado, así que una devolución podía
+  regresar unidades primero al lote equivocado. Ahora sigue siempre el orden FEFO (regresa primero
+  al último lote usado).
+- Respaldo con Docker: se verificaba con el `pg_restore` del equipo (que una instalación sólo con
+  Docker no tiene); ahora se verifica dentro del contenedor.
+- Restauración de imágenes: dependía del nombre de la carpeta de origen; ahora funciona entre
+  instalaciones distintas (Docker ↔ local).
+
+**Despliegue** ([DESPLIEGUE.md](DESPLIEGUE.md))
+- Instalación con Docker en un equipo de la farmacia o en un servidor, primeros pasos y lista de
+  verificación antes de abrir.
+- **HTTPS automático** con Caddy y Let's Encrypt (`docker compose --profile https up -d`): HTTP/2,
+  redirección de `http` a `https`, HSTS y la IP real de cada usuario en la auditoría.
+- **Respaldos diarios** verificados (`scripts/backup.sh`) y **restauración** (`scripts/restore.sh`),
+  con instrucciones para Linux (cron) y Windows (Programador de tareas), copia fuera del equipo y
+  cifrado.
+- **Comprobado con Docker:** imágenes construidas, instalación limpia con el seed del propietario,
+  venta real, reportes y Excel desde nginx sin errores de CSP, sin mapas de código publicados,
+  HTTPS con Caddy, y ciclo respaldo → cambio → restauración (datos, imágenes y reglas de
+  inmutabilidad de la base intactas).
+
+**Documentación**
+- [Manual de usuario](MANUAL_DE_USUARIO.md) en español, por tarea, con capturas (datos ficticios).
+- Guía de despliegue, seguridad, arquitectura, API y README actualizados.
+
+**Verificación**
+- `npm run typecheck` (incluye las pruebas E2E): sin errores.
+- `npm test`: 236 pruebas de API y 81 de frontend. `npm run test:e2e`: 10 de 10, dos corridas
+  seguidas sobre la misma base.
 
 ## Fase 10: entregado
 

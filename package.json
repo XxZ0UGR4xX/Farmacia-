@@ -13,16 +13,20 @@
     "dev:api": "npm run dev -w @farmacia/api",
     "dev:web": "npm run dev -w @farmacia/web",
     "build": "npm run build -w @farmacia/api && npm run build -w @farmacia/web",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p e2e",
     "test": "npm run test --workspaces --if-present",
     "db:migrate": "npm run db:migrate -w @farmacia/api",
     "db:deploy": "npm run db:deploy -w @farmacia/api",
     "db:seed": "npm run db:seed -w @farmacia/api",
     "db:seed:demo": "npm run db:seed:demo -w @farmacia/api",
-    "db:reset": "npm run db:reset -w @farmacia/api"
+    "db:reset": "npm run db:reset -w @farmacia/api",
+    "test:e2e": "playwright test"
   },
   "overrides": {
     "mysql2": "3.24.4",
     "deepmerge-ts": "8.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
   }
 }

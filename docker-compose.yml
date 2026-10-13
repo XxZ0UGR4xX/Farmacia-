@@ -1,8 +1,11 @@
-# Despliegue completo: PostgreSQL + API + Frontend (nginx)
+# Despliegue completo: PostgreSQL + API + Frontend (nginx). Guía: docs/DESPLIEGUE.md
 #   cp .env.example .env   # y completar los valores
 #   docker compose up -d --build
 #   docker compose exec api node dist/seed.js    # primera vez (roles, permisos, propietario)
 # La aplicación queda en http://localhost:8080
+#
+# Con HTTPS automático (dominio propio; ver DOMAIN en .env):
+#   docker compose --profile https up -d --build
 
 services:
   db:
@@ -59,8 +62,30 @@ services:
     depends_on:
       - api
     ports:
+      # Con HTTPS publica sólo en el propio equipo: WEB_PORT=127.0.0.1:8080
       - '${WEB_PORT:-8080}:80'
+
+  # HTTPS automático con Let's Encrypt. Sólo se inicia con:  docker compose --profile https up -d
+  caddy:
+    image: caddy:2.10.2-alpine
+    profiles: [https]
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # Certificados (no borrar: Let's Encrypt limita las emisiones)
+      - caddy_config:/config
 
 volumes:
   db_data:
   uploads:
+  caddy_data:
+  caddy_config:
